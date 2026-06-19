@@ -113,6 +113,14 @@
   .field input:focus{outline:none;border-color:var(--accent);background:var(--bg-elev);}
   .field .suffix{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-2);font-weight:700;}
   .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .item-row{display:grid;grid-template-columns:1fr 1fr 44px;gap:8px;margin-bottom:8px;align-items:center;}
+  .item-row .inwrap{position:relative;}
+  .item-row input{width:100%;padding:13px 14px;font-size:17px;font-weight:600;border-radius:12px;border:1px solid var(--sep);background:var(--card-2);color:var(--text);}
+  .item-row input:focus{outline:none;border-color:var(--accent);background:var(--bg-elev);}
+  .item-row .suffix{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-2);font-weight:700;font-size:14px;}
+  .item-row .it-del{height:46px;border-radius:12px;background:var(--card-2);color:var(--red);font-size:17px;font-weight:700;}
+  .prod-item{margin-top:10px;} .prod-item-h{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;color:var(--text-2);margin:4px 0 2px;padding-top:8px;border-top:.5px dashed var(--sep);}
+  .prod-item:first-child .prod-item-h{border-top:none;padding-top:0;}
   .live-calc{background:var(--card-2);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--text-2);margin-bottom:14px;display:flex;justify-content:space-between;}
   .live-calc b{color:var(--text);font-size:16px;}
   .del-link{text-align:center;color:var(--red);font-weight:700;padding:14px;margin-top:4px;}
@@ -267,11 +275,10 @@
     <div class="grab"></div>
     <h2 id="orderSheetTitle">Nuovo ordine</h2>
     <div class="field"><label>Cliente</label><input id="f-name" list="clientsDL" placeholder="Es. Vito" autocomplete="off" /><datalist id="clientsDL"></datalist></div>
-    <div class="field-row">
-      <div class="field"><label>Palline</label><div class="inwrap"><input id="f-palline" inputmode="numeric" placeholder="100" /></div></div>
-      <div class="field"><label>Peso pallina</label><div class="inwrap"><input id="f-peso" inputmode="decimal" placeholder="90" /><span class="suffix">g</span></div></div>
-    </div>
-    <div class="field"><label>Prezzo</label><div class="inwrap"><input id="f-prezzo" inputmode="decimal" placeholder="4,50" /><span class="suffix">€/kg</span></div></div>
+    <div class="field"><label>Prezzo (uguale per tutte le righe)</label><div class="inwrap"><input id="f-prezzo" inputmode="decimal" placeholder="4,50" /><span class="suffix">€/kg</span></div></div>
+    <label style="display:block;font-size:13px;font-weight:700;color:var(--text-2);margin:0 4px 6px;text-transform:uppercase;letter-spacing:.3px">Righe · palline e peso</label>
+    <div id="itemsBox"></div>
+    <button class="btn ghost small" type="button" onclick="addItemRow()" style="margin-bottom:14px">➕ Aggiungi riga</button>
     <div class="live-calc"><span>Peso totale · Incasso</span><b id="orderLive">—</b></div>
     <button class="btn" id="orderSaveBtn" onclick="saveOrder()">Salva ordine</button>
     <div class="del-link" id="orderDelete" style="display:none" onclick="deleteCurrentOrder()">Elimina ordine</div>
@@ -337,6 +344,7 @@ function load() {
       // migrazione da v1/v2 (lievitoPerKg / theme a livello root)
       if (typeof s.lievitoPerKg === 'number') merged.settings.lievitoPerKg = s.lievitoPerKg;
       if (typeof s.theme === 'string') merged.settings.theme = s.theme;
+      normalizeOrders(merged.orders);
       return merged;
     }
   } catch (e) {}
@@ -381,9 +389,30 @@ function doughPerKg() { const r = recipe(); return r.farina + r.fecola + r.acqua
 function perCycle() { return Math.max(1, Math.round(num(state.settings.perCycle) || 37)); }
 function lievitoDefault() { return num(state.settings.lievitoPerKg); }
 
-function orderDoughG(o) { return num(o.palline) * num(o.pesoPallina); }
+// Ogni ordine ha più righe (items): {palline, pesoPallina, done:[]}. Fallback su vecchio formato a riga singola.
+function orderItems(o) {
+  if (Array.isArray(o.items) && o.items.length) return o.items;
+  return [{ palline: num(o.palline), pesoPallina: num(o.pesoPallina), done: o.done }];
+}
+function ensureItemDone(it) {
+  const n = pesateList(it).length;
+  if (!Array.isArray(it.done) || it.done.length !== n) it.done = Array(n).fill(false);
+  return it;
+}
+function normalizeOrders(orders) {
+  if (!Array.isArray(orders)) return;
+  orders.forEach((o) => {
+    if (!Array.isArray(o.items) || !o.items.length) o.items = [{ palline: num(o.palline), pesoPallina: num(o.pesoPallina), done: Array.isArray(o.done) ? o.done : [] }];
+    o.items.forEach((it) => { it.palline = num(it.palline); it.pesoPallina = num(it.pesoPallina); ensureItemDone(it); });
+    delete o.palline; delete o.pesoPallina; delete o.done;
+  });
+}
+function orderPalline(o) { return orderItems(o).reduce((s, it) => s + num(it.palline), 0); }
+function orderDoughG(o) { return orderItems(o).reduce((s, it) => s + num(it.palline) * num(it.pesoPallina), 0); }
 function orderKg(o) { return orderDoughG(o) / 1000; }
 function orderTotal(o) { return orderKg(o) * num(o.prezzoKg); }
+function orderMaxPeso(o) { return orderItems(o).reduce((m, it) => Math.max(m, num(it.pesoPallina)), 0); }
+function orderSummary(o) { return orderItems(o).map((it) => fmt(num(it.palline)) + '×' + fmt(num(it.pesoPallina)) + 'g').join(' + '); }
 
 function pesateList(o) {
   const per = perCycle(), peso = num(o.pesoPallina), palline = num(o.palline);
@@ -399,7 +428,7 @@ function spezzatrice(o) {
 }
 function dayTotals() {
   const t = { palline: 0, doughG: 0, incasso: 0 }; const names = new Set();
-  for (const o of state.orders) { names.add((o.clientName || '').toLowerCase().trim()); t.palline += num(o.palline); t.doughG += orderDoughG(o); t.incasso += orderTotal(o); }
+  for (const o of state.orders) { names.add((o.clientName || '').toLowerCase().trim()); t.palline += orderPalline(o); t.doughG += orderDoughG(o); t.incasso += orderTotal(o); }
   t.clienti = names.size; t.kg = t.doughG / 1000; t.prezzoMedio = t.kg > 0 ? t.incasso / t.kg : 0;
   t.farinaKg = safeCeil(t.doughG / doughPerKg());
   t.ingredients = ingredientsFor(t.farinaKg); t.lievito = t.farinaKg * lievitoDefault();
@@ -474,43 +503,53 @@ function renderOrders() {
   el.innerHTML = state.orders.map((o) => `
     <div class="order tap" onclick="openOrder('${o.id}')">
       <div class="ava">${initials(o.clientName)}</div>
-      <div class="info"><div class="name">${escapeHtml(o.clientName)}</div><div class="meta">${fmt(num(o.palline))} palline × ${fmt(num(o.pesoPallina))} g · ${money(num(o.prezzoKg))}/kg</div></div>
-      <div class="amt">${money(orderTotal(o))}<small>${fmt(orderKg(o), 2)} kg</small></div>
+      <div class="info"><div class="name">${escapeHtml(o.clientName)}</div><div class="meta">${escapeHtml(orderSummary(o))} · ${money(num(o.prezzoKg))}/kg</div></div>
+      <div class="amt">${money(orderTotal(o))}<small>${fmt(orderPalline(o))} pall · ${fmt(orderKg(o), 2)} kg</small></div>
     </div>`).join('');
 }
 
 function renderProd() {
   const el = $('prodList');
   if (!state.orders.length) { el.innerHTML = emptyState('🔪', 'Niente da produrre', 'Aggiungi ordini per vedere le pesate.'); return; }
-  const sorted = [...state.orders].sort((a, b) => num(b.pesoPallina) - num(a.pesoPallina) || num(b.palline) - num(a.palline));
+  const sorted = [...state.orders].sort((a, b) => orderMaxPeso(b) - orderMaxPeso(a) || orderPalline(b) - orderPalline(a));
   el.innerHTML = sorted.map((o) => {
-    const list = pesateList(o); const s = spezzatrice(o);
-    if (!Array.isArray(o.done) || o.done.length !== list.length) o.done = list.map(() => false);
-    const doneCount = o.done.filter(Boolean).length; const pct = list.length ? Math.round(doneCount / list.length * 100) : 0;
-    const rows = list.map((p, i) => `
-      <div class="pesata ${o.done[i] ? 'done' : ''}" onclick="togglePesata('${o.id}',${i})">
-        <div class="checkbox">${o.done[i] ? '✓' : ''}</div>
-        <div class="pl"><span class="dot ${p.final ? 'final' : ''}">${p.final ? '★' : (i + 1)}</span>${p.label}<div class="sm">${fmt(p.palline)} palline</div></div>
-        <div class="pv">${fmt(p.grams)} g</div>
-      </div>`).join('');
+    const items = orderItems(o);
+    let totPes = 0, donePes = 0;
+    const blocks = items.map((it, ii) => {
+      ensureItemDone(it); const list = pesateList(it); const s = spezzatrice(it);
+      totPes += list.length; donePes += it.done.filter(Boolean).length;
+      const rows = list.map((p, pi) => `
+        <div class="pesata ${it.done[pi] ? 'done' : ''}" onclick="togglePesata('${o.id}',${ii},${pi})">
+          <div class="checkbox">${it.done[pi] ? '✓' : ''}</div>
+          <div class="pl"><span class="dot ${p.final ? 'final' : ''}">${p.final ? '★' : (pi + 1)}</span>${p.label}<div class="sm">${fmt(p.palline)} palline</div></div>
+          <div class="pv">${fmt(p.grams)} g</div>
+        </div>`).join('');
+      return `
+        <div class="prod-item">
+          <div class="prod-item-h">⚪ ${fmt(s.palline)} × ${fmt(s.peso)} g
+            <span class="chip g" style="margin-left:auto">✔ ${s.complete}</span>
+            <span class="chip ${s.residuo ? 'b' : ''}">↳ ${s.residuo}</span>
+            <span class="chip">⚙️ ${fmt(s.pesoPesata)} g</span>
+          </div>
+          ${rows}
+        </div>`;
+    }).join('');
+    const pct = totPes ? Math.round(donePes / totPes * 100) : 0;
     return `
       <div class="prod-client">
         <div class="prod-head">
-          <div><div class="pn">${escapeHtml(o.clientName)}</div><div class="pp">${fmt(s.palline)} palline da ${fmt(s.peso)} g · totale ${fmt(s.totale)} g</div></div>
-          <div style="text-align:right"><div class="pn">${doneCount}/${list.length}</div><div class="pp">pesate</div></div>
+          <div><div class="pn">${escapeHtml(o.clientName)}</div><div class="pp">${escapeHtml(orderSummary(o))} · totale ${fmt(orderDoughG(o))} g</div></div>
+          <div style="text-align:right"><div class="pn">${donePes}/${totPes}</div><div class="pp">pesate</div></div>
         </div>
         <div class="progress"><div class="bar" style="width:${pct}%"></div></div>
-        <div class="prod-body">
-          <div class="chips"><span class="chip g">✔ ${s.complete} complete</span><span class="chip ${s.residuo ? 'b' : ''}">↳ ${s.residuo} residue</span><span class="chip">⚙️ ${fmt(s.pesoPesata)} g/pesata</span></div>
-          ${rows}
-        </div>
+        <div class="prod-body">${blocks}</div>
       </div>`;
   }).join('');
 }
-function togglePesata(id, i) {
+function togglePesata(id, ii, pi) {
   const o = state.orders.find((x) => x.id === id); if (!o) return;
-  if (!Array.isArray(o.done)) o.done = [];
-  o.done[i] = !o.done[i]; save(); renderProd();
+  const it = orderItems(o)[ii]; if (!it) return;
+  ensureItemDone(it); it.done[pi] = !it.done[pi]; save(); renderProd();
 }
 
 function renderArchive() {
@@ -590,37 +629,61 @@ function resetRecipe() {
 }
 
 /* ============================ ORDER SHEET ============================ */
+function addItemRow(palline, peso) {
+  const box = $('itemsBox');
+  const div = document.createElement('div'); div.className = 'item-row';
+  div.innerHTML = `<div class="inwrap"><input class="it-pal" inputmode="numeric" placeholder="Palline" value="${palline != null ? palline : ''}" /></div>
+    <div class="inwrap"><input class="it-peso" inputmode="decimal" placeholder="Peso" value="${peso != null ? peso : ''}" /><span class="suffix">g</span></div>
+    <button class="it-del" type="button" title="Rimuovi">✕</button>`;
+  box.appendChild(div);
+  div.querySelectorAll('input').forEach((i) => i.addEventListener('input', updateOrderLive));
+  div.querySelector('.it-del').addEventListener('click', () => { div.remove(); if (!box.children.length) addItemRow('', '90'); updateOrderLive(); });
+  updateOrderLive();
+  return div;
+}
+function readItems() {
+  return [...$('itemsBox').querySelectorAll('.item-row')].map((r) => ({ palline: num(r.querySelector('.it-pal').value), pesoPallina: num(r.querySelector('.it-peso').value) })).filter((it) => it.palline > 0 && it.pesoPallina > 0);
+}
 function openOrder(id) {
   editingId = id || null;
   const o = id ? state.orders.find((x) => x.id === id) : null;
   $('orderSheetTitle').textContent = o ? 'Modifica ordine' : 'Nuovo ordine';
   $('f-name').value = o ? o.clientName : '';
-  $('f-palline').value = o ? o.palline : '';
-  $('f-peso').value = o ? o.pesoPallina : '90';
   $('f-prezzo').value = o ? inp(num(o.prezzoKg)) : '';
+  $('itemsBox').innerHTML = '';
+  if (o) orderItems(o).forEach((it) => addItemRow(num(it.palline), inp(num(it.pesoPallina)))); else addItemRow('', '90');
   $('orderDelete').style.display = o ? 'block' : 'none';
   $('orderSaveBtn').textContent = o ? 'Salva modifiche' : 'Salva ordine';
   updateOrderLive(); showSheet('orderSheet');
   if (!o) setTimeout(() => $('f-name').focus(), 320);
 }
 function updateOrderLive() {
-  const dough = num($('f-palline').value) * num($('f-peso').value);
-  const tot = (dough / 1000) * num($('f-prezzo').value);
+  const prezzo = num($('f-prezzo').value); let dough = 0;
+  readItems().forEach((it) => { dough += it.palline * it.pesoPallina; });
+  const tot = (dough / 1000) * prezzo;
   $('orderLive').textContent = dough > 0 ? `${fmt(dough)} g · ${money(tot)}` : '—';
 }
-['f-palline', 'f-peso', 'f-prezzo'].forEach((id) => $(id).addEventListener('input', updateOrderLive));
+$('f-prezzo').addEventListener('input', updateOrderLive);
 $('f-name').addEventListener('change', () => {
   const key = $('f-name').value.trim(); const c = state.clients[key];
   if (c && !num($('f-prezzo').value)) { $('f-prezzo').value = inp(num(c.prezzoKg)); updateOrderLive(); }
 });
 function saveOrder() {
-  const name = $('f-name').value.trim(), palline = num($('f-palline').value), pesoPallina = num($('f-peso').value), prezzoKg = num($('f-prezzo').value);
+  const name = $('f-name').value.trim(), prezzoKg = num($('f-prezzo').value);
+  const items = readItems();
   if (!name) { toast('Inserisci il nome cliente'); return; }
-  if (palline <= 0 || pesoPallina <= 0) { toast('Palline e peso obbligatori'); return; }
-  if (editingId) { const o = state.orders.find((x) => x.id === editingId); Object.assign(o, { clientName: name, palline, pesoPallina, prezzoKg }); o.done = pesateList(o).map(() => false); }
-  else { const o = { id: uid(), clientName: name, palline, pesoPallina, prezzoKg }; o.done = pesateList(o).map(() => false); state.orders.push(o); }
+  if (!items.length) { toast('Aggiungi almeno una riga (palline e peso)'); return; }
+  items.forEach((it) => ensureItemDone(it));
+  if (editingId) {
+    const o = state.orders.find((x) => x.id === editingId); o.clientName = name; o.prezzoKg = prezzoKg; o.items = items;
+  } else {
+    const existing = state.orders.find((x) => (x.clientName || '').toLowerCase().trim() === name.toLowerCase());
+    if (existing) { existing.items = orderItems(existing).concat(items); if (prezzoKg > 0) existing.prezzoKg = prezzoKg; }
+    else state.orders.push({ id: uid(), clientName: name, prezzoKg, items });
+  }
   if (!state.clients[name]) state.clients[name] = { prezzoKg, history: [] }; else if (prezzoKg > 0) state.clients[name].prezzoKg = prezzoKg;
-  save(); render(); hideSheet('orderSheet'); toast(editingId ? 'Ordine aggiornato' : 'Ordine aggiunto ✓');
+  save(); render(); hideSheet('orderSheet');
+  toast(editingId ? 'Ordine aggiornato' : 'Ordine salvato ✓');
 }
 function deleteCurrentOrder() {
   if (!editingId) return;
@@ -668,11 +731,11 @@ function calcInverse() {
 function saveDay() {
   if (!state.orders.length) { toast('Nessun ordine da salvare'); return; }
   const t = dayTotals();
-  const entry = { id: uid(), date: new Date().toISOString(), clienti: t.clienti, palline: t.palline, kg: t.kg, farinaKg: t.farinaKg, lievito: t.lievito, lievitoPerKg: lievitoDefault(), incasso: t.incasso, ingredients: t.ingredients, orders: state.orders.map((o) => ({ clientName: o.clientName, palline: o.palline, pesoPallina: o.pesoPallina, prezzoKg: o.prezzoKg, kg: orderKg(o), totale: orderTotal(o) })) };
+  const entry = { id: uid(), date: new Date().toISOString(), clienti: t.clienti, palline: t.palline, kg: t.kg, farinaKg: t.farinaKg, lievito: t.lievito, lievitoPerKg: lievitoDefault(), incasso: t.incasso, ingredients: t.ingredients, orders: state.orders.map((o) => ({ clientName: o.clientName, prezzoKg: o.prezzoKg, palline: orderPalline(o), kg: orderKg(o), totale: orderTotal(o), items: orderItems(o).map((it) => ({ palline: num(it.palline), pesoPallina: num(it.pesoPallina) })) })) };
   state.history.push(entry);
   for (const o of state.orders) {
     if (!state.clients[o.clientName]) state.clients[o.clientName] = { prezzoKg: num(o.prezzoKg), history: [] };
-    state.clients[o.clientName].history.push({ date: entry.date, palline: num(o.palline), kg: orderKg(o), totale: orderTotal(o) });
+    state.clients[o.clientName].history.push({ date: entry.date, palline: orderPalline(o), kg: orderKg(o), totale: orderTotal(o) });
   }
   save(); render(); toast('Giornata salvata nello storico 💾');
 }
@@ -712,16 +775,21 @@ function exportPDF() {
   head();
   doc.setFontSize(9);
   state.orders.forEach((o) => {
-    if (y > 250) { doc.addPage(); y = 18; head(); doc.setFontSize(9); }
-    const s = spezzatrice(o); const pez = s.complete + 'x' + fmt(s.pesoPesata) + 'g' + (s.residuo ? ' +' + fmt(s.pesoUltima) + 'g' : '');
-    doc.text(String(o.clientName).slice(0, 24), cols[0][1], y + 5);
-    doc.text(fmt(num(o.palline)), cols[1][1], y + 5, { align: 'right' });
-    doc.text(fmt(num(o.pesoPallina)) + ' g', cols[2][1], y + 5, { align: 'right' });
-    doc.text(fmt(orderKg(o), 2), cols[3][1], y + 5, { align: 'right' });
-    doc.text(fmt(num(o.prezzoKg), 2), cols[4][1], y + 5, { align: 'right' });
-    doc.setFont('helvetica', 'bold'); doc.text(money(orderTotal(o)), cols[5][1], y + 5, { align: 'right' }); doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7); doc.text(pez, cols[6][1], y + 5, { align: 'right' }); doc.setFontSize(9);
-    doc.setDrawColor(235); doc.line(L, y + 7, R, y + 7); y += 7.5;
+    const its = orderItems(o);
+    its.forEach((it, ii) => {
+      if (y > 250) { doc.addPage(); y = 18; head(); doc.setFontSize(9); }
+      const s = spezzatrice(it); const pez = s.complete + 'x' + fmt(s.pesoPesata) + 'g' + (s.residuo ? ' +' + fmt(s.pesoUltima) + 'g' : '');
+      doc.text(ii === 0 ? String(o.clientName).slice(0, 24) : '   ↳', cols[0][1], y + 5);
+      doc.text(fmt(num(it.palline)), cols[1][1], y + 5, { align: 'right' });
+      doc.text(fmt(num(it.pesoPallina)) + ' g', cols[2][1], y + 5, { align: 'right' });
+      doc.text(fmt(num(it.palline) * num(it.pesoPallina) / 1000, 2), cols[3][1], y + 5, { align: 'right' });
+      if (ii === 0) {
+        doc.text(fmt(num(o.prezzoKg), 2), cols[4][1], y + 5, { align: 'right' });
+        doc.setFont('helvetica', 'bold'); doc.text(money(orderTotal(o)), cols[5][1], y + 5, { align: 'right' }); doc.setFont('helvetica', 'normal');
+      }
+      doc.setFontSize(7); doc.text(pez, cols[6][1], y + 5, { align: 'right' }); doc.setFontSize(9);
+      doc.setDrawColor(238); doc.line(L, y + 7, R, y + 7); y += 7.5;
+    });
   });
   // totale
   doc.setFillColor(250, 250, 250); doc.rect(L, y, R - L, 8, 'F'); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
@@ -778,8 +846,8 @@ function exportCSV(which) {
   }
   if (!state.orders.length) { toast('Aggiungi ordini prima di esportare'); return; }
   const t = dayTotals();
-  const rows = [['Cliente', 'Palline', 'Peso pallina g', 'Kg', 'Prezzo EUR/kg', 'Totale EUR', 'Pesate complete', 'Peso pesata g', 'Residuo palline', 'Peso ultima pesata g']];
-  state.orders.forEach((o) => { const s = spezzatrice(o); rows.push([o.clientName, fmt(num(o.palline)), fmt(num(o.pesoPallina)), fmt(orderKg(o), 2), fmt(num(o.prezzoKg), 2), fmt(orderTotal(o), 2), s.complete, fmt(s.pesoPesata), s.residuo, fmt(s.pesoUltima)]); });
+  const rows = [['Cliente', 'Palline', 'Peso pallina g', 'Kg', 'Prezzo EUR/kg', 'Totale riga EUR', 'Pesate complete', 'Peso pesata g', 'Residuo palline', 'Peso ultima pesata g']];
+  state.orders.forEach((o) => { orderItems(o).forEach((it) => { const s = spezzatrice(it); const kg = num(it.palline) * num(it.pesoPallina) / 1000; rows.push([o.clientName, fmt(num(it.palline)), fmt(num(it.pesoPallina)), fmt(kg, 2), fmt(num(o.prezzoKg), 2), fmt(kg * num(o.prezzoKg), 2), s.complete, fmt(s.pesoPesata), s.residuo, fmt(s.pesoUltima)]); }); });
   rows.push([]); rows.push(['TOTALE', fmt(t.palline), '', fmt(t.kg, 2), 'media ' + fmt(t.prezzoMedio, 2), fmt(t.incasso, 2)]);
   rows.push(['Farina kg', fmt(t.farinaKg)]); rows.push(['Lievito g', fmt(t.lievito)]);
   rows.push(['Acqua g', fmt(t.ingredients.acqua)]); rows.push(['Sale g', fmt(t.ingredients.sale)]); rows.push(['Olio g', fmt(t.ingredients.olio)]); rows.push(['Fecola g', fmt(t.ingredients.fecola)]);
@@ -803,7 +871,7 @@ $('restoreFile').addEventListener('change', (e) => {
     try {
       const obj = JSON.parse(r.result); const data = obj.data ? obj.data : obj;
       if (!confirm('Ripristinare questi dati? Sostituiranno ordini, clienti e storico attuali.')) return;
-      if (data.orders) state.orders = data.orders; if (data.clients) state.clients = data.clients; if (data.history) state.history = data.history;
+      if (data.orders) { state.orders = data.orders; normalizeOrders(state.orders); } if (data.clients) state.clients = data.clients; if (data.history) state.history = data.history;
       if (data.settings) { if (data.settings.recipe) state.settings.recipe = Object.assign({}, DEFAULT_RECIPE, data.settings.recipe); if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; if (data.settings.lievitoPerKg != null) state.settings.lievitoPerKg = data.settings.lievitoPerKg; }
       save(); render(); toast('Dati ripristinati ✓');
     } catch (err) { toast('File non valido'); }
@@ -835,7 +903,7 @@ async function pushNow() {
 }
 function applyRemote(data, updatedAt) {
   applyingRemote = true;
-  if (data.orders) state.orders = data.orders; if (data.clients) state.clients = data.clients; if (data.history) state.history = data.history;
+  if (data.orders) { state.orders = data.orders; normalizeOrders(state.orders); } if (data.clients) state.clients = data.clients; if (data.history) state.history = data.history;
   if (data.settings) { if (data.settings.recipe) state.settings.recipe = Object.assign({}, DEFAULT_RECIPE, data.settings.recipe); if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; if (data.settings.lievitoPerKg != null) state.settings.lievitoPerKg = data.settings.lievitoPerKg; }
   state.updatedAt = updatedAt || new Date().toISOString();
   save({ remote: true }); render(); applyingRemote = false;
@@ -922,6 +990,12 @@ function runTests() {
   ok('multi farina ceil(20480/1590)=13', t.farinaKg, 13);
   ok('multi incasso', Math.round(t.incasso * 100) / 100, Math.round((40.5 + 50 + 1480 / 1000 * 3.8) * 100) / 100);
   ok('pesata 50g', 50 * perCycle(), 1850); ok('pesata 40g', 40 * perCycle(), 1480);
+  // ordine multi-riga (stesso cliente, pesi diversi)
+  const ml = { clientName: 'X', prezzoKg: 4, items: [{ palline: 100, pesoPallina: 90 }, { palline: 50, pesoPallina: 50 }] };
+  ok('multiriga palline', orderPalline(ml), 150);
+  ok('multiriga dough g', orderDoughG(ml), 9000 + 2500);
+  ok('multiriga totale', orderTotal(ml), (11500 / 1000) * 4);
+  state.orders = [ml]; const t2 = dayTotals(); ok('multiriga 1 cliente', t2.clienti, 1); ok('multiriga farina ceil(11500/1590)=8', t2.farinaKg, 8);
   state.orders = before;
   return res;
 }
