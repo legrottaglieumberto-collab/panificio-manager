@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#ff9500" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Panificio" />
+<link rel="manifest" href="./manifest.json" />
+<link rel="apple-touch-icon" href="./icon.svg" />
+<link rel="icon" href="./icon.svg" />
+<title>Panificio Manager Pro</title>
+<style>
+  :root {
+    --accent: #ff9500; --accent-2: #ffb340;
+    --green: #34c759; --red: #ff3b30; --blue: #0a84ff; --gray: #8e8e93;
+    --bg: #f2f2f7; --bg-elev: #ffffff; --card: #ffffff; --card-2: #f2f2f5;
+    --text: #1c1c1e; --text-2: #8e8e93; --sep: rgba(60,60,67,0.12);
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 6px 20px rgba(0,0,0,0.05);
+    --radius: 18px;
+    --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --nav-h: 64px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#000; --bg-elev:#1c1c1e; --card:#1c1c1e; --card-2:#2c2c2e; --text:#fff; --text-2:#98989f; --sep:rgba(120,120,128,0.28); --shadow:0 1px 3px rgba(0,0,0,0.4); }
+  }
+  html[data-theme="dark"]{--bg:#000;--bg-elev:#1c1c1e;--card:#1c1c1e;--card-2:#2c2c2e;--text:#fff;--text-2:#98989f;--sep:rgba(120,120,128,0.28);--shadow:0 1px 3px rgba(0,0,0,0.4);}
+  html[data-theme="light"]{--bg:#f2f2f7;--bg-elev:#fff;--card:#fff;--card-2:#f2f2f5;--text:#1c1c1e;--text-2:#8e8e93;--sep:rgba(60,60,67,0.12);--shadow:0 1px 3px rgba(0,0,0,0.06),0 6px 20px rgba(0,0,0,0.05);}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:17px;line-height:1.35;overscroll-behavior-y:none;}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+  input,select{font-family:inherit;}
+  .app{max-width:560px;margin:0 auto;min-height:100vh;padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + 12px);}
+  .topbar{position:sticky;top:0;z-index:30;padding:calc(var(--safe-top) + 10px) 16px 10px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:.5px solid var(--sep);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .topbar h1{font-size:26px;font-weight:800;margin:0;letter-spacing:-.5px;}
+  .topbar .sub{font-size:13px;color:var(--text-2);font-weight:500;margin-top:2px;}
+  .tb-actions{display:flex;gap:8px;align-items:center;}
+  .icon-btn{width:38px;height:38px;border-radius:50%;background:var(--card);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:18px;position:relative;}
+  .sync-dot{position:absolute;top:-1px;right:-1px;width:11px;height:11px;border-radius:50%;background:var(--gray);border:2px solid var(--bg);}
+  .sync-dot.connected{background:var(--green);} .sync-dot.connecting{background:var(--accent);} .sync-dot.error{background:var(--red);} .sync-dot.off{display:none;}
+  .view{padding:14px 16px 24px;display:none;animation:fade .22s ease;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:14px;}
+  .section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-2);margin:18px 6px 8px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .stat{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 14px 16px;}
+  .stat .emoji{font-size:22px;} .stat .label{font-size:13px;color:var(--text-2);font-weight:600;margin-top:6px;}
+  .stat .value{font-size:25px;font-weight:800;letter-spacing:-.5px;margin-top:2px;} .stat .value small{font-size:14px;font-weight:600;color:var(--text-2);}
+  .stat.accent{background:linear-gradient(135deg,var(--accent-2),var(--accent));color:#fff;} .stat.accent .label,.stat.accent .value small{color:rgba(255,255,255,.85);}
+  .stat.wide{grid-column:1/-1;}
+  .mini3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .mini{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:12px;text-align:center;}
+  .mini .ml{font-size:11px;color:var(--text-2);font-weight:700;text-transform:uppercase;} .mini .mv{font-size:18px;font-weight:800;margin-top:3px;} .mini .ms{font-size:11px;color:var(--text-2);}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;border-radius:16px;font-size:18px;font-weight:700;background:var(--accent);color:#fff;box-shadow:0 6px 16px rgba(255,149,0,.28);transition:transform .08s ease,opacity .15s;}
+  .btn:active{transform:scale(.97);}
+  .btn.secondary{background:var(--card);color:var(--text);box-shadow:var(--shadow);}
+  .btn.green{background:var(--green);box-shadow:0 6px 16px rgba(52,199,89,.28);}
+  .btn.blue{background:var(--blue);box-shadow:0 6px 16px rgba(10,132,255,.28);}
+  .btn.ghost{background:var(--card-2);color:var(--text);box-shadow:none;}
+  .btn.danger{background:var(--card-2);color:var(--red);box-shadow:none;}
+  .btn-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+  .btn.small{padding:12px;font-size:15px;border-radius:13px;}
+  .order{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:10px;}
+  .order .ava{width:44px;height:44px;border-radius:12px;flex:0 0 44px;background:linear-gradient(135deg,var(--accent-2),var(--accent));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;}
+  .order .info{flex:1;min-width:0;} .order .name{font-weight:700;font-size:17px;} .order .meta{font-size:13px;color:var(--text-2);margin-top:2px;}
+  .order .amt{text-align:right;font-weight:800;font-size:17px;} .order .amt small{display:block;font-size:12px;color:var(--text-2);font-weight:600;}
+  .order.tap:active{transform:scale(.99);}
+  .empty{text-align:center;color:var(--text-2);padding:40px 20px;} .empty .big{font-size:46px;margin-bottom:8px;}
+  .irow{display:flex;align-items:center;justify-content:space-between;padding:13px 4px;border-bottom:.5px solid var(--sep);}
+  .irow:last-child{border-bottom:none;} .irow .l{display:flex;align-items:center;gap:10px;font-weight:600;} .irow .l .e{font-size:19px;width:26px;text-align:center;} .irow .v{font-weight:800;font-size:17px;}
+  .irow.total{background:var(--card-2);margin:8px -16px -16px;padding:14px 20px;border-radius:0 0 var(--radius) var(--radius);}
+  .lievito-box{display:flex;align-items:center;gap:12px;background:var(--card-2);border-radius:14px;padding:12px 14px;margin-top:4px;}
+  .lievito-box input{width:74px;text-align:center;font-size:20px;font-weight:800;padding:8px;border-radius:10px;border:1px solid var(--sep);background:var(--bg-elev);color:var(--text);}
+  .prod-client{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden;}
+  .prod-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--card-2);}
+  .prod-head .pn{font-weight:800;font-size:18px;} .prod-head .pp{font-size:13px;color:var(--text-2);font-weight:600;}
+  .prod-body{padding:6px 16px 12px;}
+  .pesata{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:.5px solid var(--sep);cursor:pointer;}
+  .pesata:last-child{border-bottom:none;}
+  .checkbox{width:28px;height:28px;border-radius:9px;border:2px solid var(--sep);flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;transition:all .15s;}
+  .pesata.done .checkbox{background:var(--green);border-color:var(--green);}
+  .pesata.done .pl{text-decoration:line-through;color:var(--text-2);}
+  .pesata .pl{flex:1;font-weight:600;} .pesata .pl .sm{font-size:12px;color:var(--text-2);font-weight:500;}
+  .pesata .pv{font-weight:800;font-size:18px;} .pesata.done .pv{color:var(--text-2);}
+  .pesata .pl .dot{display:inline-flex;width:22px;height:22px;border-radius:7px;background:var(--accent);color:#fff;align-items:center;justify-content:center;font-size:12px;font-weight:800;margin-right:7px;vertical-align:middle;}
+  .pesata .pl .dot.final{background:var(--blue);}
+  .progress{height:6px;background:var(--card-2);border-radius:4px;overflow:hidden;margin:0 16px 12px;}
+  .progress .bar{height:100%;background:var(--green);transition:width .3s;}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 6px;}
+  .chip{font-size:13px;font-weight:700;padding:6px 11px;border-radius:20px;background:var(--card-2);}
+  .chip.g{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green);} .chip.b{background:color-mix(in srgb,var(--blue) 16%,transparent);color:var(--blue);}
+  .hist{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:10px;}
+  .hist .d{flex:0 0 52px;text-align:center;} .hist .d .day{font-size:22px;font-weight:800;line-height:1;} .hist .d .mon{font-size:11px;text-transform:uppercase;color:var(--text-2);font-weight:700;}
+  .hist .hi{flex:1;} .hist .hi .t{font-weight:700;} .hist .hi .s{font-size:13px;color:var(--text-2);} .hist .he{font-weight:800;color:var(--green);}
+  .seg{display:flex;background:var(--card-2);border-radius:11px;padding:3px;margin-bottom:14px;}
+  .seg button{flex:1;padding:8px;font-size:14px;font-weight:700;border-radius:8px;color:var(--text-2);}
+  .seg button.on{background:var(--bg-elev);color:var(--text);box-shadow:var(--shadow);}
+  .nav{position:fixed;bottom:0;left:0;right:0;z-index:40;max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);background:color-mix(in srgb,var(--bg-elev) 86%,transparent);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--sep);padding-bottom:var(--safe-bottom);}
+  .nav button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0 7px;color:var(--text-2);font-size:10px;font-weight:600;}
+  .nav button .ni{font-size:22px;line-height:1;} .nav button.on{color:var(--accent);}
+  .sheet-backdrop{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;}
+  .sheet-backdrop.show{opacity:1;pointer-events:auto;}
+  .sheet{width:100%;max-width:560px;background:var(--bg-elev);border-radius:22px 22px 0 0;padding:10px 18px calc(20px + var(--safe-bottom));transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);max-height:92vh;overflow-y:auto;}
+  .sheet-backdrop.show .sheet{transform:none;}
+  .sheet .grab{width:38px;height:5px;border-radius:3px;background:var(--sep);margin:6px auto 12px;}
+  .sheet h2{font-size:22px;font-weight:800;margin:4px 2px 14px;}
+  .field{margin-bottom:14px;} .field label{display:block;font-size:13px;font-weight:700;color:var(--text-2);margin:0 4px 6px;text-transform:uppercase;letter-spacing:.3px;}
+  .field .inwrap{position:relative;}
+  .field input{width:100%;padding:15px 16px;font-size:18px;font-weight:600;border-radius:14px;border:1px solid var(--sep);background:var(--card-2);color:var(--text);}
+  .field input:focus{outline:none;border-color:var(--accent);background:var(--bg-elev);}
+  .field .suffix{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-2);font-weight:700;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .live-calc{background:var(--card-2);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--text-2);margin-bottom:14px;display:flex;justify-content:space-between;}
+  .live-calc b{color:var(--text);font-size:16px;}
+  .del-link{text-align:center;color:var(--red);font-weight:700;padding:14px;margin-top:4px;}
+  .toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 24px + var(--safe-bottom));transform:translateX(-50%) translateY(20px);background:rgba(40,40,42,.96);color:#fff;padding:12px 20px;border-radius:14px;font-weight:600;font-size:15px;z-index:60;opacity:0;transition:all .25s;box-shadow:0 8px 30px rgba(0,0,0,.3);pointer-events:none;max-width:90%;text-align:center;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .note{font-size:13px;color:var(--text-2);margin:2px 4px 10px;}
+  .recipe-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .recipe-grid .ri{background:var(--card-2);border-radius:12px;padding:10px 12px;} .recipe-grid .ri .rn{font-size:12px;color:var(--text-2);font-weight:600;} .recipe-grid .ri .rv{font-weight:800;font-size:16px;}
+  .set-group{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:6px 16px;margin-bottom:14px;}
+  .set-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:.5px solid var(--sep);gap:12px;}
+  .set-row:last-child{border-bottom:none;} .set-row .sl{font-weight:600;} .set-row .sd{font-size:12px;color:var(--text-2);}
+  .set-row input{width:90px;text-align:right;padding:10px;font-size:16px;font-weight:700;border-radius:10px;border:1px solid var(--sep);background:var(--card-2);color:var(--text);}
+  .set-row input.wide{width:100%;text-align:left;}
+  .set-full{padding:12px 0;} .set-full input{width:100%;margin-top:6px;}
+  .codebox{background:var(--card-2);border-radius:12px;padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:11px;white-space:pre-wrap;color:var(--text);overflow-x:auto;}
+  .badge{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;}
+  .badge.on{background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green);} .badge.off{background:var(--card-2);color:var(--text-2);}
+  datalist{color:#000;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1 id="topTitle">Oggi</h1>
+      <div class="sub" id="topSub"></div>
+    </div>
+    <div class="tb-actions">
+      <button class="icon-btn" id="settingsBtn" title="Impostazioni">⚙️<span class="sync-dot off" id="syncDot"></span></button>
+      <button class="icon-btn" id="themeBtn" title="Tema">🌙</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <section class="view active" id="view-dash">
+    <div class="grid" id="statsGrid"></div>
+    <div class="section-title">Andamento</div>
+    <div class="mini3" id="trendRow"></div>
+    <div class="section-title">Ingredienti da preparare</div>
+    <div class="card" id="ingCard"></div>
+    <div class="section-title">Azioni</div>
+    <button class="btn" onclick="openOrder()">➕ Nuovo ordine</button>
+    <div class="btn-row">
+      <button class="btn secondary small" onclick="exportPDF()">🖨️ PDF</button>
+      <button class="btn secondary small" onclick="exportCSV('day')">📊 CSV</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn green small" onclick="saveDay()">💾 Salva giornata</button>
+      <button class="btn ghost small" onclick="openInverse()">🔄 Quanto produco?</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn ghost small" onclick="clearDay()">🧹 Svuota giornata</button>
+      <button class="btn ghost small" onclick="go('settings')">⚙️ Impostazioni</button>
+    </div>
+    <div class="section-title">Ricetta base · per kg di farina</div>
+    <div class="card"><div class="recipe-grid" id="recipeGrid"></div></div>
+  </section>
+
+  <!-- ORDINI -->
+  <section class="view" id="view-orders">
+    <button class="btn" onclick="openOrder()" style="margin-bottom:14px">➕ Nuovo ordine</button>
+    <div id="ordersList"></div>
+  </section>
+
+  <!-- PRODUZIONE -->
+  <section class="view" id="view-prod">
+    <div class="note">Spunta ogni pesata man mano che la prepari · la spezzatrice divide ogni pesata in <b id="prodPerCycle">37</b> palline.</div>
+    <div id="prodList"></div>
+  </section>
+
+  <!-- ARCHIVIO -->
+  <section class="view" id="view-archive">
+    <div class="note">Clienti salvati. Tocca un cliente per vedere lo storico e modificare il prezzo predefinito.</div>
+    <div id="archiveList"></div>
+  </section>
+
+  <!-- STORICO -->
+  <section class="view" id="view-history">
+    <div class="seg" id="histSeg">
+      <button data-f="day" class="on">Giorno</button>
+      <button data-f="week">Settimana</button>
+      <button data-f="month">Mese</button>
+      <button data-f="year">Anno</button>
+    </div>
+    <div class="card" id="histSummary"></div>
+    <div class="btn-row" style="margin:0 0 14px">
+      <button class="btn secondary small" onclick="exportCSV('history')">📊 Esporta storico CSV</button>
+      <button class="btn secondary small" onclick="exportHistoryPDF()">🖨️ Storico PDF</button>
+    </div>
+    <div id="histList"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="view" id="view-settings">
+    <div class="section-title">Ricetta base · grammi per kg di farina</div>
+    <div class="set-group" id="recipeSettings"></div>
+
+    <div class="section-title">Spezzatrice e lievito</div>
+    <div class="set-group">
+      <div class="set-row"><div><div class="sl">Palline per pesata</div><div class="sd">Capacità della spezzatrice</div></div><input id="set-percycle" inputmode="numeric" /></div>
+      <div class="set-row"><div><div class="sl">Lievito predefinito</div><div class="sd">g per kg di farina</div></div><input id="set-lievito" inputmode="decimal" /></div>
+    </div>
+    <button class="btn small" onclick="saveRecipe()">💾 Salva ricetta</button>
+    <button class="btn ghost small" style="margin-top:10px" onclick="resetRecipe()">↺ Ripristina ricetta standard</button>
+
+    <div class="section-title">☁️ Sincronizzazione cloud (Supabase)</div>
+    <div class="card">
+      <div class="note" style="margin-top:0">Inserisci i dati del tuo progetto Supabase e un <b>codice di sincronizzazione</b> condiviso tra i tuoi dispositivi. <span id="syncBadge" class="badge off">Non attiva</span></div>
+      <div class="field"><label>URL progetto</label><input id="sync-url" placeholder="https://xxxx.supabase.co" autocomplete="off" /></div>
+      <div class="field"><label>Chiave anon (public)</label><input id="sync-key" placeholder="eyJhbGci..." autocomplete="off" /></div>
+      <div class="field"><label>Codice sincronizzazione</label><div class="inwrap"><input id="sync-ws" placeholder="es. panificio-rossi" autocomplete="off" /></div></div>
+      <div class="btn-row" style="margin-top:0">
+        <button class="btn small" onclick="saveSyncAndConnect()">🔗 Connetti</button>
+        <button class="btn ghost small" onclick="disconnectSync()">Disconnetti</button>
+      </div>
+      <details style="margin-top:14px"><summary style="font-weight:700;color:var(--accent)">📋 SQL da eseguire su Supabase</summary>
+        <div class="codebox" id="sqlBox"></div>
+      </details>
+    </div>
+
+    <div class="section-title">💾 Backup e dati</div>
+    <div class="set-group">
+      <div class="set-row"><div><div class="sl">Backup automatico</div><div class="sd" id="backupInfo">—</div></div><span class="badge on">Attivo</span></div>
+    </div>
+    <div class="btn-row" style="margin-top:0">
+      <button class="btn secondary small" onclick="downloadBackup()">⬇️ Scarica backup</button>
+      <button class="btn secondary small" onclick="document.getElementById('restoreFile').click()">⬆️ Ripristina</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn secondary small" onclick="exportCSV('day')">📊 CSV giornata</button>
+      <button class="btn secondary small" onclick="exportCSV('history')">📊 CSV storico</button>
+    </div>
+    <input type="file" id="restoreFile" accept="application/json" style="display:none" />
+    <button class="btn danger small" style="margin-top:10px" onclick="resetAll()">🗑️ Azzera tutti i dati</button>
+
+    <div class="section-title">Info</div>
+    <div class="note">Panificio Manager Pro · v3 · funziona offline · i dati restano sul tuo dispositivo e (se attiva) si sincronizzano via Supabase.</div>
+  </section>
+</div>
+
+<nav class="nav" id="nav">
+  <button data-v="dash" class="on"><span class="ni">🏠</span>Oggi</button>
+  <button data-v="orders"><span class="ni">📦</span>Ordini</button>
+  <button data-v="prod"><span class="ni">🔪</span>Produzione</button>
+  <button data-v="archive"><span class="ni">👥</span>Clienti</button>
+  <button data-v="history"><span class="ni">📅</span>Storico</button>
+</nav>
+
+<!-- ORDER SHEET -->
+<div class="sheet-backdrop" id="orderSheet">
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2 id="orderSheetTitle">Nuovo ordine</h2>
+    <div class="field"><label>Cliente</label><input id="f-name" list="clientsDL" placeholder="Es. Vito" autocomplete="off" /><datalist id="clientsDL"></datalist></div>
+    <div class="field-row">
+      <div class="field"><label>Palline</label><div class="inwrap"><input id="f-palline" inputmode="numeric" placeholder="100" /></div></div>
+      <div class="field"><label>Peso pallina</label><div class="inwrap"><input id="f-peso" inputmode="decimal" placeholder="90" /><span class="suffix">g</span></div></div>
+    </div>
+    <div class="field"><label>Prezzo</label><div class="inwrap"><input id="f-prezzo" inputmode="decimal" placeholder="4,50" /><span class="suffix">€/kg</span></div></div>
+    <div class="live-calc"><span>Peso totale · Incasso</span><b id="orderLive">—</b></div>
+    <button class="btn" id="orderSaveBtn" onclick="saveOrder()">Salva ordine</button>
+    <div class="del-link" id="orderDelete" style="display:none" onclick="deleteCurrentOrder()">Elimina ordine</div>
+  </div>
+</div>
+
+<!-- INVERSE SHEET -->
+<div class="sheet-backdrop" id="inverseSheet">
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2>🔄 Quanto posso produrre?</h2>
+    <div class="note">Inserisci la farina disponibile per sapere quanto impasto e quante palline ottieni.</div>
+    <div class="field-row">
+      <div class="field"><label>Farina disponibile</label><div class="inwrap"><input id="inv-farina" inputmode="decimal" placeholder="40" /><span class="suffix">kg</span></div></div>
+      <div class="field"><label>Peso pallina</label><div class="inwrap"><input id="inv-peso" inputmode="decimal" placeholder="90" value="90" /><span class="suffix">g</span></div></div>
+    </div>
+    <div class="card" id="invResult" style="background:var(--card-2);box-shadow:none"></div>
+  </div>
+</div>
+
+<!-- CLIENT DETAIL SHEET -->
+<div class="sheet-backdrop" id="clientSheet">
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2 id="clientName">Cliente</h2>
+    <div class="field"><label>Prezzo predefinito</label><div class="inwrap"><input id="client-price" inputmode="decimal" /><span class="suffix">€/kg</span></div></div>
+    <button class="btn small" onclick="saveClientPrice()">💾 Salva prezzo</button>
+    <div class="section-title" style="margin-left:0">Storico ordini</div>
+    <div id="clientHistory"></div>
+    <div class="del-link" onclick="deleteClient()">Elimina cliente dall'archivio</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="./vendor/jspdf.umd.min.js"></script>
+<script src="./vendor/supabase.min.js"></script>
+<script>
+/* ============================ MODELLO ============================ */
+const KEY = 'panificio_state';
+const DEVKEY = 'panificio_device';
+const DEFAULT_RECIPE = { farina: 1000, fecola: 10, acqua: 500, sale: 30, olio: 50 };
+const DEFAULT_SETTINGS = { recipe: { ...DEFAULT_RECIPE }, perCycle: 37, lievitoPerKg: 3, theme: 'auto', sync: { url: '', key: '', workspace: '' } };
+const DEFAULT_STATE = { orders: [], clients: {}, history: [], settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), backups: [], lastBackup: '', updatedAt: new Date().toISOString() };
+
+let state = load();
+let editingId = null, currentClient = null;
+let sb = null, channel = null, syncStatus = 'off', pushTimer = null, applyingRemote = false;
+
+function deviceId() {
+  let d = localStorage.getItem(DEVKEY);
+  if (!d) { d = 'dev_' + Math.random().toString(36).slice(2, 10); localStorage.setItem(DEVKEY, d); }
+  return d;
+}
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && typeof s === 'object') {
+      const merged = Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_STATE)), s);
+      merged.settings = Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), s.settings || {});
+      merged.settings.recipe = Object.assign({}, DEFAULT_RECIPE, (s.settings && s.settings.recipe) || {});
+      merged.settings.sync = Object.assign({ url: '', key: '', workspace: '' }, (s.settings && s.settings.sync) || {});
+      // migrazione da v1/v2 (lievitoPerKg / theme a livello root)
+      if (typeof s.lievitoPerKg === 'number') merged.settings.lievitoPerKg = s.lievitoPerKg;
+      if (typeof s.theme === 'string') merged.settings.theme = s.theme;
+      return merged;
+    }
+  } catch (e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_STATE));
+}
+function save(opts) {
+  const o = opts || {};
+  if (!o.remote) state.updatedAt = new Date().toISOString();
+  localStorage.setItem(KEY, JSON.stringify(state));
+  if (!o.remote) schedulePush();
+}
+
+/* ============================ UTILS ============================ */
+const $ = (id) => document.getElementById(id);
+const num = (v) => {
+  let s = String(v == null ? '' : v).trim().replace(/\s/g, '');
+  if (s.indexOf(',') > -1 && s.indexOf('.') > -1) s = s.replace(/\./g, ''); // "1.000,50" -> "1000,50"
+  s = s.replace(',', '.');
+  const n = parseFloat(s); return isNaN(n) ? 0 : n;
+};
+// formato per CAMPI EDITABILI: decimale con virgola, SENZA separatore migliaia
+function inp(n) { const s = (Math.round(Number(n) * 100) / 100).toString(); return s.replace('.', ','); }
+function fmt(n, dec = 0) {
+  const neg = n < 0; const fixed = Math.abs(Number(n)).toFixed(dec);
+  let [int, frac] = fixed.split('.');
+  int = int.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return (neg ? '-' : '') + int + (frac ? ',' + frac : '');
+}
+function money(n) { return '€ ' + fmt(n, 2); }
+function gOrKg(g) { return g >= 1000 ? fmt(g / 1000, g % 1000 === 0 ? 0 : 2) + ' kg' : fmt(g, 0) + ' g'; }
+function initials(name) { return (name || '?').trim().slice(0, 2).toUpperCase(); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function safeCeil(x) { return Math.ceil(x - 1e-9); }
+function todayKey() { return new Date().toISOString().slice(0, 10); }
+let toastTimer;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2400); }
+function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+/* ============================ CALCOLI ============================ */
+function recipe() { return state.settings.recipe; }
+function doughPerKg() { const r = recipe(); return r.farina + r.fecola + r.acqua + r.sale + r.olio; }
+function perCycle() { return Math.max(1, Math.round(num(state.settings.perCycle) || 37)); }
+function lievitoDefault() { return num(state.settings.lievitoPerKg); }
+
+function orderDoughG(o) { return num(o.palline) * num(o.pesoPallina); }
+function orderKg(o) { return orderDoughG(o) / 1000; }
+function orderTotal(o) { return orderKg(o) * num(o.prezzoKg); }
+
+function pesateList(o) {
+  const per = perCycle(), peso = num(o.pesoPallina), palline = num(o.palline);
+  const complete = Math.floor(palline / per), residuo = palline % per;
+  const arr = [];
+  for (let i = 0; i < complete; i++) arr.push({ label: 'Pesata ' + (i + 1), palline: per, grams: peso * per, final: false });
+  if (residuo > 0) arr.push({ label: 'Pesata finale', palline: residuo, grams: peso * residuo, final: true });
+  return arr;
+}
+function spezzatrice(o) {
+  const per = perCycle(), palline = num(o.palline), peso = num(o.pesoPallina);
+  return { palline, peso, per, complete: Math.floor(palline / per), residuo: palline % per, pesoPesata: peso * per, pesoUltima: (palline % per) * peso, totale: palline * peso };
+}
+function dayTotals() {
+  const t = { palline: 0, doughG: 0, incasso: 0 }; const names = new Set();
+  for (const o of state.orders) { names.add((o.clientName || '').toLowerCase().trim()); t.palline += num(o.palline); t.doughG += orderDoughG(o); t.incasso += orderTotal(o); }
+  t.clienti = names.size; t.kg = t.doughG / 1000; t.prezzoMedio = t.kg > 0 ? t.incasso / t.kg : 0;
+  t.farinaKg = safeCeil(t.doughG / doughPerKg());
+  t.ingredients = ingredientsFor(t.farinaKg); t.lievito = t.farinaKg * lievitoDefault();
+  return t;
+}
+function ingredientsFor(farinaKg) { const r = recipe(); return { farina: farinaKg * r.farina, fecola: farinaKg * r.fecola, acqua: farinaKg * r.acqua, sale: farinaKg * r.sale, olio: farinaKg * r.olio }; }
+
+/* ============================ RENDER ============================ */
+function render() {
+  renderDash(); renderOrders(); renderProd(); renderArchive(); renderHistory(); renderDatalist(); renderSettings();
+  $('prodPerCycle').textContent = perCycle();
+}
+function renderDash() {
+  const t = dayTotals();
+  const today = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('topSub').textContent = today.charAt(0).toUpperCase() + today.slice(1);
+  $('statsGrid').innerHTML = `
+    ${stat('📦', 'Ordini del giorno', state.orders.length, '')}
+    ${stat('👥', 'Clienti', t.clienti, '')}
+    ${stat('⚪', 'Totale palline', fmt(t.palline), '')}
+    ${stat('⚖️', 'Peso impasto', fmt(t.kg, t.kg % 1 === 0 ? 0 : 1), 'kg')}
+    ${stat('🌾', 'Farina necessaria', fmt(t.farinaKg), 'kg')}
+    ${statAccent('💶', 'Incasso previsto', money(t.incasso), t.kg > 0 ? 'Media ' + money(t.prezzoMedio) + '/kg · 🧫 ' + fmt(t.lievito) + ' g lievito' : '')}`;
+  renderTrend();
+  const ing = t.ingredients;
+  $('ingCard').innerHTML = `
+    <div class="irow"><div class="l"><span class="e">🌾</span>Farina</div><div class="v">${gOrKg(ing.farina)}</div></div>
+    <div class="irow"><div class="l"><span class="e">🥔</span>Fecola</div><div class="v">${gOrKg(ing.fecola)}</div></div>
+    <div class="irow"><div class="l"><span class="e">💧</span>Acqua</div><div class="v">${gOrKg(ing.acqua)}</div></div>
+    <div class="irow"><div class="l"><span class="e">🧂</span>Sale</div><div class="v">${gOrKg(ing.sale)}</div></div>
+    <div class="irow"><div class="l"><span class="e">🫒</span>Olio</div><div class="v">${gOrKg(ing.olio)}</div></div>
+    <div class="lievito-box"><span class="e" style="font-size:19px">🧫</span><div style="flex:1"><div style="font-weight:700">Lievito</div><div style="font-size:13px;color:var(--text-2)">grammi per kg di farina</div></div><input id="lievInput" inputmode="decimal" value="${inp(lievitoDefault())}" /></div>
+    <div class="irow total"><div class="l">🧫 Lievito totale (${fmt(t.farinaKg)} kg × ${fmt(lievitoDefault())} g)</div><div class="v">${fmt(t.lievito, 0)} g</div></div>`;
+  const li = $('lievInput'); li.addEventListener('change', () => { state.settings.lievitoPerKg = num(li.value); save(); render(); });
+  // ricetta card
+  const r = recipe();
+  $('recipeGrid').innerHTML = `
+    <div class="ri"><div class="rn">🌾 Farina</div><div class="rv">${fmt(r.farina)} g</div></div>
+    <div class="ri"><div class="rn">🥔 Fecola</div><div class="rv">${fmt(r.fecola)} g</div></div>
+    <div class="ri"><div class="rn">💧 Acqua</div><div class="rv">${fmt(r.acqua)} g</div></div>
+    <div class="ri"><div class="rn">🧂 Sale</div><div class="rv">${fmt(r.sale)} g</div></div>
+    <div class="ri"><div class="rn">🫒 Olio</div><div class="rv">${fmt(r.olio)} g</div></div>
+    <div class="ri"><div class="rn">🧫 Lievito</div><div class="rv">${fmt(lievitoDefault())} g/kg</div></div>`;
+}
+function stat(e, l, v, u) { return `<div class="stat"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}${u ? ' <small>' + u + '</small>' : ''}</div></div>`; }
+function statAccent(e, l, v, s) { return `<div class="stat accent wide"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}</div>${s ? '<div class="label" style="margin-top:4px">' + s + '</div>' : ''}</div>`; }
+
+function periodTotals(period) {
+  const now = new Date(); const acc = { incasso: 0, kg: 0, palline: 0, days: 0 };
+  const seen = new Set();
+  for (const h of state.history) {
+    const d = new Date(h.date); let ok = false;
+    if (period === 'week') { const diff = (now - d) / 86400000; ok = diff < 7 && d <= now; }
+    else if (period === 'month') ok = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    if (ok) { acc.incasso += h.incasso; acc.kg += h.kg; acc.palline += h.palline; seen.add(h.date.slice(0, 10)); }
+  }
+  // includi la giornata in corso se ha ordini e non è già salvata oggi
+  if (state.orders.length && !seen.has(todayKey())) { const t = dayTotals(); acc.incasso += t.incasso; acc.kg += t.kg; acc.palline += t.palline; seen.add(todayKey()); }
+  acc.days = seen.size; return acc;
+}
+function renderTrend() {
+  const t = dayTotals(); const w = periodTotals('week'); const m = periodTotals('month');
+  $('trendRow').innerHTML = `
+    <div class="mini"><div class="ml">Oggi</div><div class="mv">${money(t.incasso)}</div><div class="ms">${fmt(t.kg, 1)} kg</div></div>
+    <div class="mini"><div class="ml">Settimana</div><div class="mv">${money(w.incasso)}</div><div class="ms">${fmt(w.kg, 1)} kg · ${w.days}g</div></div>
+    <div class="mini"><div class="ml">Mese</div><div class="mv">${money(m.incasso)}</div><div class="ms">${fmt(m.kg, 1)} kg · ${m.days}g</div></div>`;
+}
+
+function renderOrders() {
+  const el = $('ordersList');
+  if (!state.orders.length) { el.innerHTML = emptyState('📦', 'Nessun ordine', 'Tocca “Nuovo ordine” per iniziare la giornata.'); return; }
+  el.innerHTML = state.orders.map((o) => `
+    <div class="order tap" onclick="openOrder('${o.id}')">
+      <div class="ava">${initials(o.clientName)}</div>
+      <div class="info"><div class="name">${escapeHtml(o.clientName)}</div><div class="meta">${fmt(num(o.palline))} palline × ${fmt(num(o.pesoPallina))} g · ${money(num(o.prezzoKg))}/kg</div></div>
+      <div class="amt">${money(orderTotal(o))}<small>${fmt(orderKg(o), 2)} kg</small></div>
+    </div>`).join('');
+}
+
+function renderProd() {
+  const el = $('prodList');
+  if (!state.orders.length) { el.innerHTML = emptyState('🔪', 'Niente da produrre', 'Aggiungi ordini per vedere le pesate.'); return; }
+  const sorted = [...state.orders].sort((a, b) => num(b.pesoPallina) - num(a.pesoPallina) || num(b.palline) - num(a.palline));
+  el.innerHTML = sorted.map((o) => {
+    const list = pesateList(o); const s = spezzatrice(o);
+    if (!Array.isArray(o.done) || o.done.length !== list.length) o.done = list.map(() => false);
+    const doneCount = o.done.filter(Boolean).length; const pct = list.length ? Math.round(doneCount / list.length * 100) : 0;
+    const rows = list.map((p, i) => `
+      <div class="pesata ${o.done[i] ? 'done' : ''}" onclick="togglePesata('${o.id}',${i})">
+        <div class="checkbox">${o.done[i] ? '✓' : ''}</div>
+        <div class="pl"><span class="dot ${p.final ? 'final' : ''}">${p.final ? '★' : (i + 1)}</span>${p.label}<div class="sm">${fmt(p.palline)} palline</div></div>
+        <div class="pv">${fmt(p.grams)} g</div>
+      </div>`).join('');
+    return `
+      <div class="prod-client">
+        <div class="prod-head">
+          <div><div class="pn">${escapeHtml(o.clientName)}</div><div class="pp">${fmt(s.palline)} palline da ${fmt(s.peso)} g · totale ${fmt(s.totale)} g</div></div>
+          <div style="text-align:right"><div class="pn">${doneCount}/${list.length}</div><div class="pp">pesate</div></div>
+        </div>
+        <div class="progress"><div class="bar" style="width:${pct}%"></div></div>
+        <div class="prod-body">
+          <div class="chips"><span class="chip g">✔ ${s.complete} complete</span><span class="chip ${s.residuo ? 'b' : ''}">↳ ${s.residuo} residue</span><span class="chip">⚙️ ${fmt(s.pesoPesata)} g/pesata</span></div>
+          ${rows}
+        </div>
+      </div>`;
+  }).join('');
+}
+function togglePesata(id, i) {
+  const o = state.orders.find((x) => x.id === id); if (!o) return;
+  if (!Array.isArray(o.done)) o.done = [];
+  o.done[i] = !o.done[i]; save(); renderProd();
+}
+
+function renderArchive() {
+  const el = $('archiveList'); const names = Object.keys(state.clients);
+  if (!names.length) { el.innerHTML = emptyState('👥', 'Archivio vuoto', 'I clienti vengono salvati automaticamente quando crei un ordine.'); return; }
+  names.sort((a, b) => a.localeCompare(b));
+  el.innerHTML = names.map((n) => {
+    const c = state.clients[n]; const cnt = (c.history || []).length;
+    return `<div class="order tap" onclick="openClient('${escapeHtml(n).replace(/'/g, "\\'")}')"><div class="ava">${initials(n)}</div><div class="info"><div class="name">${escapeHtml(n)}</div><div class="meta">${cnt} ordini in archivio</div></div><div class="amt">${money(num(c.prezzoKg))}<small>€/kg</small></div></div>`;
+  }).join('');
+}
+
+let histFilter = 'day';
+function inRange(dateStr, filter) {
+  const now = new Date(), d = new Date(dateStr);
+  if (filter === 'day') return d.toDateString() === now.toDateString();
+  if (filter === 'week') { const diff = (now - d) / 86400000; return diff < 7 && d <= now; }
+  if (filter === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  if (filter === 'year') return d.getFullYear() === now.getFullYear();
+  return true;
+}
+function renderHistory() {
+  const el = $('histList');
+  if (!state.history.length) { el.innerHTML = emptyState('📅', 'Nessuno storico', 'Salva una giornata per archiviarla qui.'); $('histSummary').style.display = 'none'; return; }
+  const items = state.history.filter((h) => inRange(h.date, histFilter)).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const sum = items.reduce((a, h) => { a.incasso += h.incasso; a.kg += h.kg; a.palline += h.palline; return a; }, { incasso: 0, kg: 0, palline: 0 });
+  $('histSummary').style.display = 'block';
+  $('histSummary').innerHTML = `
+    <div class="irow"><div class="l">💶 Incasso totale</div><div class="v">${money(sum.incasso)}</div></div>
+    <div class="irow"><div class="l">⚖️ Kg prodotti</div><div class="v">${fmt(sum.kg, 1)} kg</div></div>
+    <div class="irow"><div class="l">⚪ Palline · 📅 Giornate</div><div class="v">${fmt(sum.palline)} · ${items.length}</div></div>`;
+  if (!items.length) { el.innerHTML = emptyState('🔍', 'Nessun dato', 'Nessuna giornata in questo periodo.'); return; }
+  el.innerHTML = items.map((h) => {
+    const d = new Date(h.date);
+    return `<div class="hist"><div class="d"><div class="day">${d.getDate()}</div><div class="mon">${d.toLocaleDateString('it-IT', { month: 'short' })}</div></div><div class="hi"><div class="t">${h.clienti} clienti · ${fmt(h.palline)} palline</div><div class="s">${fmt(h.kg, 1)} kg · ${fmt(h.farinaKg)} kg farina · ${fmt(h.lievito)} g lievito</div></div><div class="he">${money(h.incasso)}</div></div>`;
+  }).join('');
+}
+function renderDatalist() { $('clientsDL').innerHTML = Object.keys(state.clients).sort().map((n) => `<option value="${escapeHtml(n)}">`).join(''); }
+function emptyState(i, t, s) { return `<div class="empty"><div class="big">${i}</div><div style="font-weight:700;font-size:18px;color:var(--text)">${t}</div><div style="margin-top:4px">${s}</div></div>`; }
+
+/* ============================ SETTINGS RENDER ============================ */
+function renderSettings() {
+  const r = recipe();
+  const items = [['farina', '🌾 Farina'], ['fecola', '🥔 Fecola'], ['acqua', '💧 Acqua'], ['sale', '🧂 Sale'], ['olio', '🫒 Olio']];
+  $('recipeSettings').innerHTML = items.map(([k, l]) => `<div class="set-row"><div class="sl">${l}</div><div style="display:flex;align-items:center;gap:6px"><input id="rc-${k}" inputmode="decimal" value="${inp(r[k])}" /><span class="sd">g</span></div></div>`).join('');
+  $('set-percycle').value = perCycle();
+  $('set-lievito').value = inp(lievitoDefault());
+  const sy = state.settings.sync;
+  $('sync-url').value = sy.url || ''; $('sync-key').value = sy.key || ''; $('sync-ws').value = sy.workspace || '';
+  $('sqlBox').textContent = SQL_SCHEMA;
+  const last = state.backups.length ? state.backups[state.backups.length - 1].date : null;
+  $('backupInfo').textContent = last ? ('Ultimo: ' + new Date(last).toLocaleString('it-IT') + ' · ' + state.backups.length + ' salvati') : 'In attesa del primo backup';
+  updateSyncBadge();
+}
+const SQL_SCHEMA = `create table if not exists panificio_sync (
+  workspace text primary key,
+  data jsonb,
+  device text,
+  updated_at timestamptz default now()
+);
+alter table panificio_sync enable row level security;
+create policy "accesso anon" on panificio_sync
+  for all using (true) with check (true);
+alter publication supabase_realtime add table panificio_sync;`;
+
+function saveRecipe() {
+  const r = recipe();
+  ['farina', 'fecola', 'acqua', 'sale', 'olio'].forEach((k) => { const v = num($('rc-' + k).value); if (v > 0) r[k] = v; });
+  const pc = Math.round(num($('set-percycle').value)); if (pc >= 1) state.settings.perCycle = pc;
+  const lv = num($('set-lievito').value); if (lv >= 0) state.settings.lievitoPerKg = lv;
+  save(); render(); toast('Ricetta salvata ✓');
+}
+function resetRecipe() {
+  if (!confirm('Ripristinare la ricetta standard (1000/10/500/30/50, 37 palline, 3 g/kg)?')) return;
+  state.settings.recipe = { ...DEFAULT_RECIPE }; state.settings.perCycle = 37; state.settings.lievitoPerKg = 3;
+  save(); render(); toast('Ricetta ripristinata');
+}
+
+/* ============================ ORDER SHEET ============================ */
+function openOrder(id) {
+  editingId = id || null;
+  const o = id ? state.orders.find((x) => x.id === id) : null;
+  $('orderSheetTitle').textContent = o ? 'Modifica ordine' : 'Nuovo ordine';
+  $('f-name').value = o ? o.clientName : '';
+  $('f-palline').value = o ? o.palline : '';
+  $('f-peso').value = o ? o.pesoPallina : '90';
+  $('f-prezzo').value = o ? inp(num(o.prezzoKg)) : '';
+  $('orderDelete').style.display = o ? 'block' : 'none';
+  $('orderSaveBtn').textContent = o ? 'Salva modifiche' : 'Salva ordine';
+  updateOrderLive(); showSheet('orderSheet');
+  if (!o) setTimeout(() => $('f-name').focus(), 320);
+}
+function updateOrderLive() {
+  const dough = num($('f-palline').value) * num($('f-peso').value);
+  const tot = (dough / 1000) * num($('f-prezzo').value);
+  $('orderLive').textContent = dough > 0 ? `${fmt(dough)} g · ${money(tot)}` : '—';
+}
+['f-palline', 'f-peso', 'f-prezzo'].forEach((id) => $(id).addEventListener('input', updateOrderLive));
+$('f-name').addEventListener('change', () => {
+  const key = $('f-name').value.trim(); const c = state.clients[key];
+  if (c && !num($('f-prezzo').value)) { $('f-prezzo').value = inp(num(c.prezzoKg)); updateOrderLive(); }
+});
+function saveOrder() {
+  const name = $('f-name').value.trim(), palline = num($('f-palline').value), pesoPallina = num($('f-peso').value), prezzoKg = num($('f-prezzo').value);
+  if (!name) { toast('Inserisci il nome cliente'); return; }
+  if (palline <= 0 || pesoPallina <= 0) { toast('Palline e peso obbligatori'); return; }
+  if (editingId) { const o = state.orders.find((x) => x.id === editingId); Object.assign(o, { clientName: name, palline, pesoPallina, prezzoKg }); o.done = pesateList(o).map(() => false); }
+  else { const o = { id: uid(), clientName: name, palline, pesoPallina, prezzoKg }; o.done = pesateList(o).map(() => false); state.orders.push(o); }
+  if (!state.clients[name]) state.clients[name] = { prezzoKg, history: [] }; else if (prezzoKg > 0) state.clients[name].prezzoKg = prezzoKg;
+  save(); render(); hideSheet('orderSheet'); toast(editingId ? 'Ordine aggiornato' : 'Ordine aggiunto ✓');
+}
+function deleteCurrentOrder() {
+  if (!editingId) return;
+  state.orders = state.orders.filter((x) => x.id !== editingId); save(); render(); hideSheet('orderSheet'); toast('Ordine eliminato');
+}
+
+/* ============================ CLIENT DETAIL ============================ */
+function openClient(name) {
+  currentClient = name; const c = state.clients[name]; if (!c) return;
+  $('clientName').textContent = name; $('client-price').value = inp(num(c.prezzoKg));
+  const h = (c.history || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+  $('clientHistory').innerHTML = h.length ? h.map((x) => {
+    const d = new Date(x.date);
+    return `<div class="irow"><div class="l">${d.toLocaleDateString('it-IT')} · ${fmt(x.palline)} palline</div><div class="v">${money(x.totale)}</div></div>`;
+  }).join('') : '<div class="note">Nessun ordine salvato per questo cliente.</div>';
+  showSheet('clientSheet');
+}
+function saveClientPrice() {
+  if (!currentClient) return; const v = num($('client-price').value);
+  state.clients[currentClient].prezzoKg = v; save(); render(); toast('Prezzo aggiornato');
+}
+function deleteClient() {
+  if (!currentClient) return;
+  if (!confirm('Eliminare ' + currentClient + ' dall\'archivio? Gli ordini di oggi restano.')) return;
+  delete state.clients[currentClient]; save(); render(); hideSheet('clientSheet'); toast('Cliente eliminato');
+}
+
+/* ============================ INVERSE ============================ */
+function openInverse() { showSheet('inverseSheet'); calcInverse(); setTimeout(() => $('inv-farina').focus(), 320); }
+function calcInverse() {
+  const farinaKg = num($('inv-farina').value), peso = num($('inv-peso').value) || 90;
+  const doughG = farinaKg * doughPerKg(), palline = Math.floor(doughG / peso), avanzo = doughG - palline * peso;
+  const ing = ingredientsFor(farinaKg), liev = farinaKg * lievitoDefault(), per = perCycle();
+  $('invResult').innerHTML = farinaKg > 0 ? `
+    <div class="irow"><div class="l">⚖️ Impasto ottenibile</div><div class="v">${gOrKg(doughG)}</div></div>
+    <div class="irow"><div class="l">⚪ Palline da ${fmt(peso)} g</div><div class="v">${fmt(palline)}</div></div>
+    <div class="irow"><div class="l">➗ Pesate (${per}/pesata)</div><div class="v">${Math.floor(palline / per)} + ${palline % per}</div></div>
+    <div class="irow"><div class="l">🧫 Lievito (${fmt(lievitoDefault())} g/kg)</div><div class="v">${fmt(liev)} g</div></div>
+    <div class="irow"><div class="l">💧 Acqua · 🧂 Sale · 🫒 Olio</div><div class="v" style="font-size:14px">${gOrKg(ing.acqua)} · ${gOrKg(ing.sale)} · ${gOrKg(ing.olio)}</div></div>
+    <div class="irow total"><div class="l">↩️ Avanzo impasto</div><div class="v">${fmt(avanzo)} g</div></div>` : '<div class="empty" style="padding:20px"><div class="big">🌾</div>Inserisci i kg di farina</div>';
+}
+['inv-farina', 'inv-peso'].forEach((id) => $(id).addEventListener('input', calcInverse));
+
+/* ============================ SALVA / SVUOTA GIORNATA ============================ */
+function saveDay() {
+  if (!state.orders.length) { toast('Nessun ordine da salvare'); return; }
+  const t = dayTotals();
+  const entry = { id: uid(), date: new Date().toISOString(), clienti: t.clienti, palline: t.palline, kg: t.kg, farinaKg: t.farinaKg, lievito: t.lievito, lievitoPerKg: lievitoDefault(), incasso: t.incasso, ingredients: t.ingredients, orders: state.orders.map((o) => ({ clientName: o.clientName, palline: o.palline, pesoPallina: o.pesoPallina, prezzoKg: o.prezzoKg, kg: orderKg(o), totale: orderTotal(o) })) };
+  state.history.push(entry);
+  for (const o of state.orders) {
+    if (!state.clients[o.clientName]) state.clients[o.clientName] = { prezzoKg: num(o.prezzoKg), history: [] };
+    state.clients[o.clientName].history.push({ date: entry.date, palline: num(o.palline), kg: orderKg(o), totale: orderTotal(o) });
+  }
+  save(); render(); toast('Giornata salvata nello storico 💾');
+}
+function clearDay() {
+  if (!state.orders.length) { toast('Giornata già vuota'); return; }
+  if (confirm('Svuotare tutti gli ordini di oggi? Lo storico salvato resta intatto.')) { state.orders = []; save(); render(); toast('Giornata svuotata'); }
+}
+
+/* ============================ PDF (jsPDF) ============================ */
+function getPDF() { const j = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF; if (!j) { toast('Libreria PDF non disponibile'); return null; } return new j({ unit: 'mm', format: 'a4' }); }
+function exportPDF() {
+  if (!state.orders.length) { toast('Aggiungi ordini prima di esportare'); return; }
+  const doc = getPDF(); if (!doc) return;
+  const t = dayTotals(); const dateStr = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  let y = 0; const L = 14, R = 196;
+  doc.setFillColor(255, 149, 0); doc.rect(0, 0, 210, 26, 'F');
+  doc.setTextColor(255); doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.text('Panificio Manager Pro', L, 13);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.text(cap(dateStr), L, 20);
+  y = 36; doc.setTextColor(30);
+  // riepilogo
+  const cards = [['Clienti', String(t.clienti)], ['Palline', fmt(t.palline)], ['Impasto', fmt(t.kg, 1) + ' kg'], ['Farina', fmt(t.farinaKg) + ' kg'], ['Incasso', money(t.incasso)]];
+  const cw = (R - L) / cards.length;
+  cards.forEach((c, i) => {
+    const x = L + i * cw; doc.setDrawColor(230); doc.setFillColor(248, 248, 250); doc.roundedRect(x, y, cw - 3, 18, 2, 2, 'FD');
+    doc.setFontSize(8); doc.setTextColor(140); doc.text(c[0].toUpperCase(), x + 3, y + 6);
+    doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(i >= 3 ? 200 : 40, i >= 3 ? 100 : 40, i >= 3 ? 0 : 40); doc.text(c[1], x + 3, y + 13);
+    doc.setFont('helvetica', 'normal');
+  });
+  y += 26;
+  // tabella ordini
+  doc.setTextColor(40); doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.text('Ordini', L, y); y += 3;
+  const cols = [['Cliente', L, 'l'], ['Palline', 70, 'r'], ['Peso', 92, 'r'], ['Kg', 112, 'r'], ['EUR/kg', 134, 'r'], ['Totale', 162, 'r'], ['Spezzatrice', 196, 'r']];
+  const head = () => {
+    doc.setFillColor(255, 247, 237); doc.rect(L, y, R - L, 7, 'F'); doc.setFontSize(8); doc.setTextColor(154, 77, 0); doc.setFont('helvetica', 'bold');
+    cols.forEach((c) => doc.text(c[0], c[1], y + 5, { align: c[2] === 'r' ? 'right' : 'left' })); y += 7; doc.setFont('helvetica', 'normal'); doc.setTextColor(40);
+  };
+  head();
+  doc.setFontSize(9);
+  state.orders.forEach((o) => {
+    if (y > 250) { doc.addPage(); y = 18; head(); doc.setFontSize(9); }
+    const s = spezzatrice(o); const pez = s.complete + 'x' + fmt(s.pesoPesata) + 'g' + (s.residuo ? ' +' + fmt(s.pesoUltima) + 'g' : '');
+    doc.text(String(o.clientName).slice(0, 24), cols[0][1], y + 5);
+    doc.text(fmt(num(o.palline)), cols[1][1], y + 5, { align: 'right' });
+    doc.text(fmt(num(o.pesoPallina)) + ' g', cols[2][1], y + 5, { align: 'right' });
+    doc.text(fmt(orderKg(o), 2), cols[3][1], y + 5, { align: 'right' });
+    doc.text(fmt(num(o.prezzoKg), 2), cols[4][1], y + 5, { align: 'right' });
+    doc.setFont('helvetica', 'bold'); doc.text(money(orderTotal(o)), cols[5][1], y + 5, { align: 'right' }); doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7); doc.text(pez, cols[6][1], y + 5, { align: 'right' }); doc.setFontSize(9);
+    doc.setDrawColor(235); doc.line(L, y + 7, R, y + 7); y += 7.5;
+  });
+  // totale
+  doc.setFillColor(250, 250, 250); doc.rect(L, y, R - L, 8, 'F'); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+  doc.text('TOTALE · media ' + money(t.prezzoMedio) + '/kg', L + 1, y + 5);
+  doc.text(fmt(t.palline), cols[1][1], y + 5, { align: 'right' }); doc.text(fmt(t.kg, 2), cols[3][1], y + 5, { align: 'right' });
+  doc.setTextColor(200, 100, 0); doc.text(money(t.incasso), cols[5][1], y + 5, { align: 'right' }); doc.setTextColor(40); doc.setFont('helvetica', 'normal');
+  y += 16;
+  // ingredienti
+  if (y > 235) { doc.addPage(); y = 18; }
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.text('Ingredienti da preparare', L, y); y += 4;
+  const ing = t.ingredients;
+  const rows = [['🌾 Farina', gOrKg(ing.farina)], ['🥔 Fecola', gOrKg(ing.fecola)], ['💧 Acqua', gOrKg(ing.acqua)], ['🧂 Sale', gOrKg(ing.sale)], ['🫒 Olio', gOrKg(ing.olio)], ['🧫 Lievito (' + fmt(lievitoDefault()) + ' g/kg)', fmt(t.lievito) + ' g']].map((r) => [r[0].replace(/^[^ ]+ /, ''), r[1]]);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  rows.forEach((r) => { doc.setDrawColor(235); doc.roundedRect(L, y, R - L, 8, 1, 1); doc.text(r[0], L + 3, y + 5.5); doc.setFont('helvetica', 'bold'); doc.text(r[1], R - 3, y + 5.5, { align: 'right' }); doc.setFont('helvetica', 'normal'); y += 9; });
+  doc.setFontSize(8); doc.setTextColor(160); doc.text('Generato da Panificio Manager Pro · ' + new Date().toLocaleString('it-IT'), L, 290);
+  doc.save('Panificio_' + todayKey() + '.pdf'); toast('PDF scaricato ✓');
+}
+function exportHistoryPDF() {
+  const items = state.history.filter((h) => inRange(h.date, histFilter)).sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (!items.length) { toast('Nessun dato nello storico per questo periodo'); return; }
+  const doc = getPDF(); if (!doc) return; const L = 14, R = 196;
+  doc.setFillColor(255, 149, 0); doc.rect(0, 0, 210, 22, 'F'); doc.setTextColor(255); doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+  doc.text('Storico · ' + ({ day: 'Giorno', week: 'Settimana', month: 'Mese', year: 'Anno' }[histFilter]), L, 14);
+  let y = 30; doc.setTextColor(40); doc.setFontSize(9);
+  doc.setFillColor(255, 247, 237); doc.rect(L, y, R - L, 7, 'F'); doc.setTextColor(154, 77, 0); doc.setFont('helvetica', 'bold');
+  doc.text('Data', L + 1, y + 5); doc.text('Clienti', 70, y + 5, { align: 'right' }); doc.text('Palline', 100, y + 5, { align: 'right' }); doc.text('Kg', 130, y + 5, { align: 'right' }); doc.text('Incasso', R, y + 5, { align: 'right' });
+  y += 9; doc.setTextColor(40); doc.setFont('helvetica', 'normal');
+  let ti = 0, tk = 0, tp = 0;
+  items.forEach((h) => {
+    if (y > 280) { doc.addPage(); y = 18; }
+    doc.text(new Date(h.date).toLocaleDateString('it-IT'), L + 1, y + 4); doc.text(String(h.clienti), 70, y + 4, { align: 'right' });
+    doc.text(fmt(h.palline), 100, y + 4, { align: 'right' }); doc.text(fmt(h.kg, 1), 130, y + 4, { align: 'right' });
+    doc.setFont('helvetica', 'bold'); doc.text(money(h.incasso), R, y + 4, { align: 'right' }); doc.setFont('helvetica', 'normal');
+    doc.setDrawColor(235); doc.line(L, y + 6, R, y + 6); y += 7; ti += h.incasso; tk += h.kg; tp += h.palline;
+  });
+  doc.setFont('helvetica', 'bold'); doc.text('TOTALE', L + 1, y + 5); doc.text(fmt(tp), 100, y + 5, { align: 'right' }); doc.text(fmt(tk, 1), 130, y + 5, { align: 'right' });
+  doc.setTextColor(200, 100, 0); doc.text(money(ti), R, y + 5, { align: 'right' });
+  doc.save('Panificio_storico_' + histFilter + '.pdf'); toast('PDF storico scaricato ✓');
+}
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+/* ============================ CSV ============================ */
+function downloadFile(name, content, type) {
+  const blob = new Blob(['﻿' + content], { type: type || 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function csvCell(v) { const s = String(v == null ? '' : v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+function exportCSV(which) {
+  if (which === 'history') {
+    if (!state.history.length) { toast('Storico vuoto'); return; }
+    const rows = [['Data', 'Clienti', 'Palline', 'Kg', 'Farina kg', 'Lievito g', 'Incasso EUR']];
+    state.history.slice().sort((a, b) => new Date(a.date) - new Date(b.date)).forEach((h) => rows.push([new Date(h.date).toLocaleDateString('it-IT'), h.clienti, fmt(h.palline), fmt(h.kg, 2), fmt(h.farinaKg), fmt(h.lievito), fmt(h.incasso, 2)]));
+    downloadFile('Panificio_storico.csv', rows.map((r) => r.map(csvCell).join(';')).join('\r\n')); toast('CSV storico scaricato ✓'); return;
+  }
+  if (!state.orders.length) { toast('Aggiungi ordini prima di esportare'); return; }
+  const t = dayTotals();
+  const rows = [['Cliente', 'Palline', 'Peso pallina g', 'Kg', 'Prezzo EUR/kg', 'Totale EUR', 'Pesate complete', 'Peso pesata g', 'Residuo palline', 'Peso ultima pesata g']];
+  state.orders.forEach((o) => { const s = spezzatrice(o); rows.push([o.clientName, fmt(num(o.palline)), fmt(num(o.pesoPallina)), fmt(orderKg(o), 2), fmt(num(o.prezzoKg), 2), fmt(orderTotal(o), 2), s.complete, fmt(s.pesoPesata), s.residuo, fmt(s.pesoUltima)]); });
+  rows.push([]); rows.push(['TOTALE', fmt(t.palline), '', fmt(t.kg, 2), 'media ' + fmt(t.prezzoMedio, 2), fmt(t.incasso, 2)]);
+  rows.push(['Farina kg', fmt(t.farinaKg)]); rows.push(['Lievito g', fmt(t.lievito)]);
+  rows.push(['Acqua g', fmt(t.ingredients.acqua)]); rows.push(['Sale g', fmt(t.ingredients.sale)]); rows.push(['Olio g', fmt(t.ingredients.olio)]); rows.push(['Fecola g', fmt(t.ingredients.fecola)]);
+  downloadFile('Panificio_' + todayKey() + '.csv', rows.map((r) => r.map(csvCell).join(';')).join('\r\n')); toast('CSV giornata scaricato ✓');
+}
+
+/* ============================ BACKUP ============================ */
+function autoBackup() {
+  const today = todayKey();
+  if (state.lastBackup === today) return;
+  if (!state.orders.length && !state.history.length) return;
+  state.backups.push({ date: new Date().toISOString(), data: serializableState() });
+  if (state.backups.length > 14) state.backups = state.backups.slice(-14);
+  state.lastBackup = today; save({ remote: true });
+}
+function serializableState() { return { orders: state.orders, clients: state.clients, history: state.history, settings: { recipe: state.settings.recipe, perCycle: state.settings.perCycle, lievitoPerKg: state.settings.lievitoPerKg } }; }
+function downloadBackup() { downloadFile('Panificio_backup_' + todayKey() + '.json', JSON.stringify(state, null, 2), 'application/json'); toast('Backup scaricato ✓'); }
+$('restoreFile').addEventListener('change', (e) => {
+  const f = e.target.files[0]; if (!f) return; const r = new FileReader();
+  r.onload = () => {
+    try {
+      const obj = JSON.parse(r.result); const data = obj.data ? obj.data : obj;
+      if (!confirm('Ripristinare questi dati? Sostituiranno ordini, clienti e storico attuali.')) return;
+      if (data.orders) state.orders = data.orders; if (data.clients) state.clients = data.clients; if (data.history) state.history = data.history;
+      if (data.settings) { if (data.settings.recipe) state.settings.recipe = Object.assign({}, DEFAULT_RECIPE, data.settings.recipe); if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; if (data.settings.lievitoPerKg != null) state.settings.lievitoPerKg = data.settings.lievitoPerKg; }
+      save(); render(); toast('Dati ripristinati ✓');
+    } catch (err) { toast('File non valido'); }
+  };
+  r.readAsText(f); e.target.value = '';
+});
+function resetAll() {
+  if (!confirm('Azzerare TUTTO (ordini, clienti, storico)? Operazione irreversibile.')) return;
+  if (!confirm('Sei sicuro? Conferma definitiva.')) return;
+  const sync = state.settings.sync, theme = state.settings.theme;
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE)); state.settings.sync = sync; state.settings.theme = theme;
+  save(); render(); applyTheme(); toast('Dati azzerati');
+}
+
+/* ============================ SYNC (Supabase) ============================ */
+function updateSyncBadge() {
+  const dot = $('syncDot'); dot.className = 'sync-dot ' + (syncStatus === 'off' ? 'off' : syncStatus);
+  const b = $('syncBadge'); if (b) {
+    const map = { off: ['Non attiva', 'off'], connecting: ['Connessione…', 'off'], connected: ['Attiva ✓', 'on'], error: ['Errore', 'off'] };
+    const m = map[syncStatus] || map.off; b.textContent = m[0]; b.className = 'badge ' + m[1];
+  }
+}
+function setSyncStatus(s) { syncStatus = s; updateSyncBadge(); }
+function schedulePush() { if (!sb || applyingRemote) return; clearTimeout(pushTimer); pushTimer = setTimeout(pushNow, 800); }
+async function pushNow() {
+  if (!sb) return; const ws = state.settings.sync.workspace; if (!ws) return;
+  try { const { error } = await sb.from('panificio_sync').upsert({ workspace: ws, data: serializableState(), device: deviceId(), updated_at: state.updatedAt }); if (error) throw error; if (syncStatus !== 'connected') setSyncStatus('connected'); }
+  catch (e) { setSyncStatus('error'); }
+}
+function applyRemote(data, updatedAt) {
+  applyingRemote = true;
+  if (data.orders) state.orders = data.orders; if (data.clients) state.clients = data.clients; if (data.history) state.history = data.history;
+  if (data.settings) { if (data.settings.recipe) state.settings.recipe = Object.assign({}, DEFAULT_RECIPE, data.settings.recipe); if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; if (data.settings.lievitoPerKg != null) state.settings.lievitoPerKg = data.settings.lievitoPerKg; }
+  state.updatedAt = updatedAt || new Date().toISOString();
+  save({ remote: true }); render(); applyingRemote = false;
+}
+async function pullRemote(initial) {
+  const ws = state.settings.sync.workspace; if (!sb || !ws) return;
+  try {
+    const { data, error } = await sb.from('panificio_sync').select('data,updated_at,device').eq('workspace', ws).maybeSingle();
+    if (error) throw error;
+    if (data && data.data) {
+      if (!initial || new Date(data.updated_at) >= new Date(state.updatedAt)) { applyRemote(data.data, data.updated_at); toast('Dati sincronizzati dal cloud ☁️'); }
+      else { await pushNow(); }
+    } else { await pushNow(); }
+    setSyncStatus('connected');
+  } catch (e) { setSyncStatus('error'); toast('Errore sync: ' + (e.message || e)); }
+}
+function subscribeRealtime() {
+  const ws = state.settings.sync.workspace; if (!sb || !ws) return;
+  if (channel) { try { sb.removeChannel(channel); } catch (e) {} }
+  channel = sb.channel('panificio-' + ws)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'panificio_sync', filter: 'workspace=eq.' + ws }, (payload) => {
+      const row = payload.new; if (!row || !row.data) return; if (row.device === deviceId()) return;
+      if (new Date(row.updated_at) > new Date(state.updatedAt)) { applyRemote(row.data, row.updated_at); toast('Aggiornato da un altro dispositivo ☁️'); }
+    })
+    .subscribe((status) => { if (status === 'SUBSCRIBED') setSyncStatus('connected'); else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setSyncStatus('error'); });
+}
+async function connectSync() {
+  const { url, key, workspace } = state.settings.sync;
+  if (!url || !key || !workspace) { setSyncStatus('off'); return; }
+  if (!window.supabase || !window.supabase.createClient) { toast('Libreria sync non caricata'); setSyncStatus('error'); return; }
+  try { sb = window.supabase.createClient(url, key, { realtime: { params: { eventsPerSecond: 5 } } }); setSyncStatus('connecting'); await pullRemote(true); subscribeRealtime(); }
+  catch (e) { setSyncStatus('error'); toast('Errore connessione: ' + (e.message || e)); }
+}
+function saveSyncAndConnect() {
+  state.settings.sync = { url: $('sync-url').value.trim().replace(/\/$/, ''), key: $('sync-key').value.trim(), workspace: $('sync-ws').value.trim() };
+  save({ remote: true });
+  if (!state.settings.sync.url || !state.settings.sync.key || !state.settings.sync.workspace) { toast('Compila URL, chiave e codice'); return; }
+  toast('Connessione in corso…'); connectSync();
+}
+function disconnectSync() {
+  if (channel) { try { sb.removeChannel(channel); } catch (e) {} channel = null; }
+  sb = null; setSyncStatus('off'); toast('Sincronizzazione disattivata');
+}
+
+/* ============================ SHEET / NAV / THEME ============================ */
+function showSheet(id) { $(id).classList.add('show'); }
+function hideSheet(id) { $(id).classList.remove('show'); }
+document.querySelectorAll('.sheet-backdrop').forEach((b) => b.addEventListener('click', (e) => { if (e.target === b) b.classList.remove('show'); }));
+const TITLES = { dash: 'Oggi', orders: 'Ordini', prod: 'Produzione', archive: 'Clienti', history: 'Storico', settings: 'Impostazioni' };
+function go(v) {
+  document.querySelectorAll('.view').forEach((s) => s.classList.remove('active'));
+  $('view-' + v).classList.add('active');
+  document.querySelectorAll('#nav button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
+  $('topTitle').textContent = TITLES[v]; $('topSub').style.display = v === 'dash' ? 'block' : 'none';
+  if (v === 'settings') renderSettings();
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('#nav button').forEach((b) => b.addEventListener('click', () => go(b.dataset.v)));
+document.querySelectorAll('#histSeg button').forEach((b) => b.addEventListener('click', () => { histFilter = b.dataset.f; document.querySelectorAll('#histSeg button').forEach((x) => x.classList.toggle('on', x === b)); renderHistory(); }));
+$('settingsBtn').addEventListener('click', () => go('settings'));
+function applyTheme() {
+  const html = document.documentElement, th = state.settings.theme;
+  if (th === 'auto') html.removeAttribute('data-theme'); else html.setAttribute('data-theme', th);
+  const dark = th === 'dark' || (th === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  $('themeBtn').textContent = dark ? '☀️' : '🌙';
+}
+$('themeBtn').addEventListener('click', () => { state.settings.theme = (state.settings.theme === 'auto') ? 'light' : (state.settings.theme === 'light' ? 'dark' : 'auto'); save({ remote: true }); applyTheme(); toast('Tema: ' + (state.settings.theme === 'auto' ? 'automatico' : state.settings.theme === 'light' ? 'chiaro' : 'scuro')); });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+
+/* ============================ SELF-TEST (calcoli) ============================ */
+function runTests() {
+  const res = []; const ok = (name, got, exp) => res.push({ name, got, exp, pass: JSON.stringify(got) === JSON.stringify(exp) });
+  const o = { palline: 100, pesoPallina: 90, prezzoKg: 4.5 };
+  ok('peso ordine g', orderDoughG(o), 9000); ok('kg ordine', orderKg(o), 9); ok('totale ordine', orderTotal(o), 40.5);
+  const s = spezzatrice(o); ok('pesate complete', s.complete, 2); ok('residuo', s.residuo, 26); ok('peso pesata', s.pesoPesata, 3330); ok('peso ultima', s.pesoUltima, 2340);
+  // farina arrotondata per eccesso (dough/1590 ceil)
+  ok('farina 9000g', safeCeil(9000 / doughPerKg()), 6);
+  ok('farina esatta 1590*35', safeCeil(35 * 1590 / 1590), 35);
+  ok('farina 34,1->35', safeCeil(34.1), 35); ok('farina 34,9->35', safeCeil(34.9), 35); ok('farina 35,0->35', safeCeil(35.0), 35);
+  // multi-ordine
+  const before = state.orders; state.orders = [{ palline: 100, pesoPallina: 90, prezzoKg: 4.5 }, { palline: 200, pesoPallina: 50, prezzoKg: 5 }, { palline: 37, pesoPallina: 40, prezzoKg: 3.8 }];
+  const t = dayTotals();
+  ok('multi palline', t.palline, 337); ok('multi dough g', t.doughG, 9000 + 10000 + 1480);
+  ok('multi farina ceil(20480/1590)=13', t.farinaKg, 13);
+  ok('multi incasso', Math.round(t.incasso * 100) / 100, Math.round((40.5 + 50 + 1480 / 1000 * 3.8) * 100) / 100);
+  ok('pesata 50g', 50 * perCycle(), 1850); ok('pesata 40g', 40 * perCycle(), 1480);
+  state.orders = before;
+  return res;
+}
+
+/* ============================ INIT ============================ */
+applyTheme(); render(); autoBackup();
+if (state.settings.sync.url && state.settings.sync.key && state.settings.sync.workspace) { connectSync(); } else { setSyncStatus('off'); }
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+</script>
+</body>
+</html>
