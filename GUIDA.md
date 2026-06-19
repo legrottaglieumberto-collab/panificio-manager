@@ -63,6 +63,29 @@ Per ogni **1 kg di farina**:
 
 ---
 
+## 4-bis. Condividere il "da farsi" con i collaboratori
+
+Tu inserisci gli ordini, i collaboratori vedono cosa preparare. Due modi:
+
+### A) Link rapido (subito, senza registrazioni) 📤
+1. Vai in **Produzione** (o nella Dashboard) e premi **📤 Link rapido**.
+2. Si apre la condivisione del telefono: mandalo su **WhatsApp** al collaboratore.
+3. Lui apre il link e vede **solo il da farsi**: impasto da preparare + tutte le
+   pesate da spezzare. Niente prezzi, niente modifiche. Può **spuntare le pesate**
+   sul suo telefono mentre lavora.
+4. Se cambi gli ordini dopo, rimanda il link (è una "fotografia" del momento).
+
+### B) Tempo reale 🟢 (richiede la sincronizzazione cloud attiva, vedi punto 5)
+1. Configura una volta Supabase (punto 5).
+2. Premi **🟢 Tempo reale**: mandi un link al collaboratore.
+3. Lui lo apre **una volta**: l'app si collega da sola e da quel momento vede gli
+   aggiornamenti **in diretta**, e le pesate spuntate sono **condivise** con te.
+4. Il collaboratore è in **modalità sola lettura** (vede Oggi e Produzione, non può
+   modificare ordini né vedere gli incassi). Per uscire: pulsante **Esci** in basso.
+
+> Consiglio: il **Link rapido** è perfetto per iniziare subito. Il **Tempo reale**
+> conviene se volete lavorare sempre sincronizzati durante la giornata.
+
 ## 5. Sincronizzazione cloud (facoltativa) — Supabase
 
 Serve solo se vuoi vedere gli stessi dati su iPhone, iPad e PC in tempo reale.
