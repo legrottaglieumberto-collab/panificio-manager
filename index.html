@@ -138,6 +138,18 @@
   .codebox{background:var(--card-2);border-radius:12px;padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:11px;white-space:pre-wrap;color:var(--text);overflow-x:auto;}
   .badge{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;}
   .badge.on{background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green);} .badge.off{background:var(--card-2);color:var(--text-2);}
+  /* Condivisione / collaboratore */
+  body.share-mode .topbar .tb-actions, body.share-mode .nav { display:none; }
+  body.share-mode .view:not(#view-share) { display:none !important; }
+  body.share-mode #view-share { display:block; }
+  body.share-mode .app { padding-bottom: 24px; }
+  .share-banner{background:linear-gradient(135deg,var(--accent-2),var(--accent));color:#fff;border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;font-weight:600;}
+  .share-banner .bt{font-size:13px;opacity:.9;}
+  body.collab #settingsBtn{display:none;}
+  body.collab .owner-only{display:none !important;}
+  .collab-bar{position:fixed;left:0;right:0;bottom:calc(var(--nav-h) + var(--safe-bottom));max-width:560px;margin:0 auto;z-index:35;display:none;align-items:center;gap:10px;padding:10px 16px;background:color-mix(in srgb,var(--blue) 16%,var(--bg-elev));border-top:.5px solid var(--sep);font-size:13px;font-weight:600;color:var(--blue);}
+  body.collab .collab-bar{display:flex;}
+  .collab-bar button{margin-left:auto;color:var(--text-2);font-weight:700;background:var(--card-2);padding:7px 12px;border-radius:10px;}
   datalist{color:#000;}
 </style>
 </head>
@@ -157,26 +169,31 @@
   <!-- DASHBOARD -->
   <section class="view active" id="view-dash">
     <div class="grid" id="statsGrid"></div>
-    <div class="section-title">Andamento</div>
-    <div class="mini3" id="trendRow"></div>
+    <div class="section-title owner-only">Andamento</div>
+    <div class="mini3 owner-only" id="trendRow"></div>
     <div class="section-title">Ingredienti da preparare</div>
     <div class="card" id="ingCard"></div>
-    <div class="section-title">Azioni</div>
-    <button class="btn" onclick="openOrder()">➕ Nuovo ordine</button>
-    <div class="btn-row">
+    <div class="section-title owner-only">Condividi con i collaboratori</div>
+    <div class="btn-row owner-only" style="margin-top:0">
+      <button class="btn blue small" onclick="shareProduzione()">📤 Link rapido</button>
+      <button class="btn green small" onclick="shareLive()">🟢 Tempo reale</button>
+    </div>
+    <div class="section-title owner-only">Azioni</div>
+    <button class="btn owner-only" onclick="openOrder()">➕ Nuovo ordine</button>
+    <div class="btn-row owner-only">
       <button class="btn secondary small" onclick="exportPDF()">🖨️ PDF</button>
       <button class="btn secondary small" onclick="exportCSV('day')">📊 CSV</button>
     </div>
-    <div class="btn-row">
+    <div class="btn-row owner-only">
       <button class="btn green small" onclick="saveDay()">💾 Salva giornata</button>
       <button class="btn ghost small" onclick="openInverse()">🔄 Quanto produco?</button>
     </div>
-    <div class="btn-row">
+    <div class="btn-row owner-only">
       <button class="btn ghost small" onclick="clearDay()">🧹 Svuota giornata</button>
       <button class="btn ghost small" onclick="go('settings')">⚙️ Impostazioni</button>
     </div>
-    <div class="section-title">Ricetta base · per kg di farina</div>
-    <div class="card"><div class="recipe-grid" id="recipeGrid"></div></div>
+    <div class="section-title owner-only">Ricetta base · per kg di farina</div>
+    <div class="card owner-only"><div class="recipe-grid" id="recipeGrid"></div></div>
   </section>
 
   <!-- ORDINI -->
@@ -187,6 +204,10 @@
 
   <!-- PRODUZIONE -->
   <section class="view" id="view-prod">
+    <div class="btn-row owner-only" style="margin:0 0 12px">
+      <button class="btn blue small" onclick="shareProduzione()">📤 Condividi (link)</button>
+      <button class="btn green small" onclick="shareLive()">🟢 Tempo reale</button>
+    </div>
     <div class="note">Spunta ogni pesata man mano che la prepari · la spezzatrice divide ogni pesata in <b id="prodPerCycle">37</b> palline.</div>
     <div id="prodList"></div>
   </section>
@@ -259,14 +280,19 @@
     <div class="section-title">Info</div>
     <div class="note">Panificio Manager Pro · v3 · funziona offline · i dati restano sul tuo dispositivo e (se attiva) si sincronizzano via Supabase.</div>
   </section>
+
+  <!-- VISTA CONDIVISA (sola lettura per collaboratori via link) -->
+  <section class="view" id="view-share"></section>
 </div>
+
+<div class="collab-bar" id="collabBar">👁️ Modalità collaboratore · sola lettura <button onclick="exitCollab()">Esci</button></div>
 
 <nav class="nav" id="nav">
   <button data-v="dash" class="on"><span class="ni">🏠</span>Oggi</button>
-  <button data-v="orders"><span class="ni">📦</span>Ordini</button>
+  <button data-v="orders" class="owner-only"><span class="ni">📦</span>Ordini</button>
   <button data-v="prod"><span class="ni">🔪</span>Produzione</button>
-  <button data-v="archive"><span class="ni">👥</span>Clienti</button>
-  <button data-v="history"><span class="ni">📅</span>Storico</button>
+  <button data-v="archive" class="owner-only"><span class="ni">👥</span>Clienti</button>
+  <button data-v="history" class="owner-only"><span class="ni">📅</span>Storico</button>
 </nav>
 
 <!-- ORDER SHEET -->
@@ -460,7 +486,7 @@ function renderDash() {
     <div class="irow"><div class="l"><span class="e">💧</span>Acqua</div><div class="v">${gOrKg(ing.acqua)}</div></div>
     <div class="irow"><div class="l"><span class="e">🧂</span>Sale</div><div class="v">${gOrKg(ing.sale)}</div></div>
     <div class="irow"><div class="l"><span class="e">🫒</span>Olio</div><div class="v">${gOrKg(ing.olio)}</div></div>
-    <div class="lievito-box"><span class="e" style="font-size:19px">🧫</span><div style="flex:1"><div style="font-weight:700">Lievito</div><div style="font-size:13px;color:var(--text-2)">grammi per kg di farina</div></div><input id="lievInput" inputmode="decimal" value="${inp(lievitoDefault())}" /></div>
+    <div class="lievito-box owner-only"><span class="e" style="font-size:19px">🧫</span><div style="flex:1"><div style="font-weight:700">Lievito</div><div style="font-size:13px;color:var(--text-2)">grammi per kg di farina</div></div><input id="lievInput" inputmode="decimal" value="${inp(lievitoDefault())}" /></div>
     <div class="irow total"><div class="l">🧫 Lievito totale (${fmt(t.farinaKg)} kg × ${fmt(lievitoDefault())} g)</div><div class="v">${fmt(t.lievito, 0)} g</div></div>`;
   const li = $('lievInput'); li.addEventListener('change', () => { state.settings.lievitoPerKg = num(li.value); save(); render(); });
   // ricetta card
@@ -474,7 +500,7 @@ function renderDash() {
     <div class="ri"><div class="rn">🧫 Lievito</div><div class="rv">${fmt(lievitoDefault())} g/kg</div></div>`;
 }
 function stat(e, l, v, u) { return `<div class="stat"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}${u ? ' <small>' + u + '</small>' : ''}</div></div>`; }
-function statAccent(e, l, v, s) { return `<div class="stat accent wide"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}</div>${s ? '<div class="label" style="margin-top:4px">' + s + '</div>' : ''}</div>`; }
+function statAccent(e, l, v, s) { return `<div class="stat accent wide owner-only" id="incassoCard"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}</div>${s ? '<div class="label" style="margin-top:4px">' + s + '</div>' : ''}</div>`; }
 
 function periodTotals(period) {
   const now = new Date(); const acc = { incasso: 0, kg: 0, palline: 0, days: 0 };
@@ -645,6 +671,7 @@ function readItems() {
   return [...$('itemsBox').querySelectorAll('.item-row')].map((r) => ({ palline: num(r.querySelector('.it-pal').value), pesoPallina: num(r.querySelector('.it-peso').value) })).filter((it) => it.palline > 0 && it.pesoPallina > 0);
 }
 function openOrder(id) {
+  if (state.settings.role === 'collab') { toast('👁️ Modalità collaboratore · sola lettura'); return; }
   editingId = id || null;
   const o = id ? state.orders.find((x) => x.id === id) : null;
   $('orderSheetTitle').textContent = o ? 'Modifica ordine' : 'Nuovo ordine';
@@ -1000,9 +1027,111 @@ function runTests() {
   return res;
 }
 
+/* ============================ CONDIVISIONE ============================ */
+function b64urlEncode(obj) { const s = JSON.stringify(obj); const b = btoa(unescape(encodeURIComponent(s))); return b.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function b64urlDecode(str) { let b = str.replace(/-/g, '+').replace(/_/g, '/'); while (b.length % 4) b += '='; return JSON.parse(decodeURIComponent(escape(atob(b)))); }
+function baseUrl() { return location.origin + location.pathname; }
+function doShare(title, text, url) {
+  if (navigator.share) { navigator.share({ title, text, url }).then(() => toast('Condiviso ✓')).catch(() => {}); }
+  else if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => toast('Link copiato! Incollalo su WhatsApp')).catch(() => prompt('Copia il link:', url)); }
+  else prompt('Copia il link:', url);
+}
+// --- Link rapido: snapshot sola lettura, senza prezzi ---
+function sharePayload() {
+  return { v: 1, t: 'prod', date: new Date().toISOString(), rc: state.settings.recipe, pc: perCycle(), lv: lievitoDefault(),
+    o: state.orders.map((o) => ({ n: o.clientName, it: orderItems(o).map((it) => ({ p: num(it.palline), w: num(it.pesoPallina) })) })) };
+}
+function shareProduzione() {
+  if (!state.orders.length) { toast('Aggiungi ordini prima di condividere'); return; }
+  doShare('Produzione di oggi', 'Ecco il da farsi di oggi 🥖', baseUrl() + '#share=' + b64urlEncode(sharePayload()));
+}
+// --- Tempo reale: link che collega via Supabase ---
+function shareLive() {
+  const sy = state.settings.sync;
+  if (!sy.url || !sy.key || !sy.workspace) { toast('Prima configura la sincronizzazione in Impostazioni'); go('settings'); return; }
+  doShare('Collegati al panificio (tempo reale)', 'Apri per vedere la produzione in tempo reale 🥖', baseUrl() + '#join=' + b64urlEncode({ u: sy.url, k: sy.key, w: sy.workspace }));
+}
+function handleJoin(p) {
+  state.settings.sync = { url: p.u, key: p.k, workspace: p.w }; state.settings.role = 'collab'; save({ remote: true });
+  try { history.replaceState(null, '', baseUrl()); } catch (e) { location.hash = ''; }
+}
+function exitCollab() {
+  if (!confirm('Uscire dalla modalità collaboratore?')) return;
+  state.settings.role = ''; save({ remote: true }); disconnectSync(); applyRole(); go('dash'); toast('Modalità collaboratore disattivata');
+}
+function applyRole() { document.body.classList.toggle('collab', state.settings.role === 'collab'); }
+// --- Vista condivisa (sola lettura da link #share) ---
+let shareLocalDone = null, shareKey = '';
+function enterShareMode(p) {
+  document.body.classList.add('share-mode');
+  $('topTitle').textContent = 'Da preparare'; $('topSub').style.display = 'block';
+  $('topSub').textContent = cap(new Date(p.date).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }));
+  shareKey = 'panificio_share_' + b64urlEncode(p.o).slice(0, 24);
+  try { shareLocalDone = new Set(JSON.parse(localStorage.getItem(shareKey) || '[]')); } catch (e) { shareLocalDone = new Set(); }
+  renderShare(p);
+}
+function sharePesate(per, w, pall) {
+  const complete = Math.floor(pall / per), residuo = pall % per, arr = [];
+  for (let i = 0; i < complete; i++) arr.push({ label: 'Pesata ' + (i + 1), palline: per, grams: w * per, final: false });
+  if (residuo > 0) arr.push({ label: 'Pesata finale', palline: residuo, grams: w * residuo, final: true });
+  return arr;
+}
+function renderShare(p) {
+  const rc = p.rc, dpk = rc.farina + rc.fecola + rc.acqua + rc.sale + rc.olio; let doughG = 0, pall = 0;
+  p.o.forEach((o) => o.it.forEach((it) => { doughG += it.p * it.w; pall += it.p; }));
+  const farinaKg = Math.ceil(doughG / dpk - 1e-9);
+  const ing = { farina: farinaKg * rc.farina, fecola: farinaKg * rc.fecola, acqua: farinaKg * rc.acqua, sale: farinaKg * rc.sale, olio: farinaKg * rc.olio };
+  const liev = farinaKg * p.lv;
+  const ingHtml = `
+    <div class="section-title" style="margin-left:0">🧂 Impasto da preparare</div>
+    <div class="card">
+      <div class="irow"><div class="l"><span class="e">🌾</span>Farina</div><div class="v">${gOrKg(ing.farina)}</div></div>
+      <div class="irow"><div class="l"><span class="e">🥔</span>Fecola</div><div class="v">${gOrKg(ing.fecola)}</div></div>
+      <div class="irow"><div class="l"><span class="e">💧</span>Acqua</div><div class="v">${gOrKg(ing.acqua)}</div></div>
+      <div class="irow"><div class="l"><span class="e">🧂</span>Sale</div><div class="v">${gOrKg(ing.sale)}</div></div>
+      <div class="irow"><div class="l"><span class="e">🫒</span>Olio</div><div class="v">${gOrKg(ing.olio)}</div></div>
+      <div class="irow total"><div class="l">🧫 Lievito</div><div class="v">${fmt(liev)} g</div></div>
+    </div>`;
+  const prodHtml = p.o.map((o, oi) => {
+    const blocks = o.it.map((it, ii) => {
+      const per = p.pc, list = sharePesate(per, it.w, it.p), complete = Math.floor(it.p / per), residuo = it.p % per;
+      const rows = list.map((pe, pi) => { const key = oi + '_' + ii + '_' + pi, done = shareLocalDone.has(key);
+        return `<div class="pesata ${done ? 'done' : ''}" data-k="${key}" onclick="toggleShare('${key}')"><div class="checkbox">${done ? '✓' : ''}</div><div class="pl"><span class="dot ${pe.final ? 'final' : ''}">${pe.final ? '★' : (pi + 1)}</span>${pe.label}<div class="sm">${fmt(pe.palline)} palline</div></div><div class="pv">${fmt(pe.grams)} g</div></div>`;
+      }).join('');
+      return `<div class="prod-item"><div class="prod-item-h">⚪ ${fmt(it.p)} × ${fmt(it.w)} g<span class="chip g" style="margin-left:auto">✔ ${complete}</span><span class="chip ${residuo ? 'b' : ''}">↳ ${residuo}</span><span class="chip">⚙️ ${fmt(it.w * per)} g</span></div>${rows}</div>`;
+    }).join('');
+    const summary = o.it.map((it) => fmt(it.p) + '×' + fmt(it.w) + 'g').join(' + ');
+    return `<div class="prod-client"><div class="prod-head"><div><div class="pn">${escapeHtml(o.n)}</div><div class="pp">${escapeHtml(summary)}</div></div></div><div class="prod-body">${blocks}</div></div>`;
+  }).join('');
+  $('view-share').innerHTML = `
+    <div class="share-banner">📋 Produzione da preparare<div class="bt">Sola lettura · spunta le pesate man mano che le fai</div></div>
+    <div class="grid" style="margin-bottom:4px">${stat('⚪', 'Totale palline', fmt(pall), '')}${stat('🌾', 'Farina', fmt(farinaKg), 'kg')}</div>
+    ${ingHtml}
+    <div class="section-title" style="margin-left:0">🔪 Pesate da spezzare</div>
+    ${prodHtml}`;
+  $('view-share').classList.add('active');
+}
+function toggleShare(key) {
+  if (shareLocalDone.has(key)) shareLocalDone.delete(key); else shareLocalDone.add(key);
+  try { localStorage.setItem(shareKey, JSON.stringify([...shareLocalDone])); } catch (e) {}
+  const el = document.querySelector('.pesata[data-k="' + key + '"]'); if (el) { const on = shareLocalDone.has(key); el.classList.toggle('done', on); el.querySelector('.checkbox').textContent = on ? '✓' : ''; }
+}
+function checkHash() {
+  const h = location.hash || '';
+  if (h.indexOf('#share=') === 0) { try { enterShareMode(b64urlDecode(h.slice(7))); return 'share'; } catch (e) { console.warn(e); } }
+  if (h.indexOf('#join=') === 0) { try { handleJoin(b64urlDecode(h.slice(6))); return 'join'; } catch (e) { console.warn(e); } }
+  return '';
+}
+
 /* ============================ INIT ============================ */
-applyTheme(); render(); autoBackup();
-if (state.settings.sync.url && state.settings.sync.key && state.settings.sync.workspace) { connectSync(); } else { setSyncStatus('off'); }
+applyTheme();
+const startMode = checkHash();
+if (startMode !== 'share') {
+  applyRole();
+  render(); autoBackup();
+  if (state.settings.role === 'collab') go('prod');
+  if (state.settings.sync.url && state.settings.sync.key && state.settings.sync.workspace) { connectSync(); } else { setSyncStatus('off'); }
+}
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 </script>
 </body>
