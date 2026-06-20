@@ -121,7 +121,8 @@
   .item-row .it-del{height:46px;border-radius:12px;background:var(--card-2);color:var(--red);font-size:17px;font-weight:700;}
   .prod-item{margin-top:10px;} .prod-item-h{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;color:var(--text-2);margin:4px 0 2px;padding-top:8px;border-top:.5px dashed var(--sep);}
   .prod-item:first-child .prod-item-h{border-top:none;padding-top:0;}
-  .prod-spec{background:color-mix(in srgb,var(--accent) 13%,transparent);color:var(--accent);font-weight:800;font-size:15px;padding:9px 12px;border-radius:11px;margin:4px 0 8px;}
+  .prod-spec{background:color-mix(in srgb,var(--accent) 13%,transparent);color:var(--accent);font-weight:800;font-size:16px;padding:11px 13px;border-radius:11px;margin:0 0 4px;}
+  .prod-sub{font-size:13px;color:var(--text-2);font-weight:600;margin:0 2px 2px;}
   .ing-row{display:grid;grid-template-columns:1fr 96px 34px;gap:8px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--sep);}
   .ing-row:last-child{border-bottom:none;}
   .ing-row input{width:100%;padding:11px 12px;font-size:16px;font-weight:600;border-radius:10px;border:1px solid var(--sep);background:var(--card-2);color:var(--text);}
@@ -216,7 +217,7 @@
       <button class="btn blue small" onclick="shareProduzione()">📤 Condividi (link)</button>
       <button class="btn green small" onclick="shareLive()">🟢 Tempo reale</button>
     </div>
-    <div class="note">Spunta ogni pesata man mano che la prepari · la spezzatrice divide ogni pesata in <b id="prodPerCycle">37</b> palline.</div>
+    <div class="note">Cosa preparare per ogni cliente · la spezzatrice divide ogni pesata in <b id="prodPerCycle">37</b> palline.</div>
     <div id="prodList"></div>
   </section>
 
@@ -452,7 +453,7 @@ function pesataSpec(it) {
   const per = perCycle(), peso = num(it.pesoPallina), pall = num(it.palline);
   const complete = Math.floor(pall / per), residuo = pall % per, pesoPesata = peso * per;
   const parts = [];
-  if (complete > 0) parts.push(complete + (complete === 1 ? ' pesata da ' : ' pesate da ') + gOrKg(pesoPesata));
+  if (complete > 0) parts.push(complete + (complete === 1 ? ' pesata da ' : ' pesate da ') + fmt(pesoPesata) + ' g');
   if (residuo > 0) parts.push(residuo + (residuo === 1 ? ' pallina' : ' palline'));
   return parts.length ? parts.join(' + ') : '—';
 }
@@ -571,31 +572,14 @@ function renderProd() {
   const sorted = [...state.orders].sort((a, b) => orderMaxPeso(b) - orderMaxPeso(a) || orderPalline(b) - orderPalline(a));
   el.innerHTML = sorted.map((o) => {
     const items = orderItems(o);
-    let totPes = 0, donePes = 0;
-    const blocks = items.map((it, ii) => {
-      ensureItemDone(it); const list = pesateList(it); const s = spezzatrice(it);
-      totPes += list.length; donePes += it.done.filter(Boolean).length;
-      const rows = list.map((p, pi) => `
-        <div class="pesata ${it.done[pi] ? 'done' : ''}" onclick="togglePesata('${o.id}',${ii},${pi})">
-          <div class="checkbox">${it.done[pi] ? '✓' : ''}</div>
-          <div class="pl"><span class="dot ${p.final ? 'final' : ''}">${p.final ? '★' : (pi + 1)}</span>${p.final ? '+ ' + fmt(p.palline) + ' palline' : p.label}<div class="sm">${p.final ? 'resto · ' + fmt(p.grams) + ' g' : fmt(p.palline) + ' palline'}</div></div>
-          <div class="pv">${fmt(p.grams)} g</div>
-        </div>`).join('');
-      return `
-        <div class="prod-item">
-          <div class="prod-item-h">⚪ ${fmt(s.palline)} × ${fmt(s.peso)} g</div>
-          <div class="prod-spec">🔪 ${pesataSpec(it)}</div>
-          ${rows}
-        </div>`;
-    }).join('');
-    const pct = totPes ? Math.round(donePes / totPes * 100) : 0;
+    const blocks = items.map((it) => `
+      <div class="prod-item">
+        <div class="prod-spec">🔪 ${pesataSpec(it)}</div>
+        <div class="prod-sub">⚪ ${fmt(num(it.palline))} palline da ${fmt(num(it.pesoPallina))} g</div>
+      </div>`).join('');
     return `
       <div class="prod-client">
-        <div class="prod-head">
-          <div><div class="pn">${escapeHtml(o.clientName)}</div><div class="pp">${escapeHtml(orderSummary(o))} · totale ${fmt(orderDoughG(o))} g</div></div>
-          <div style="text-align:right"><div class="pn">${donePes}/${totPes}</div><div class="pp">pesate</div></div>
-        </div>
-        <div class="progress"><div class="bar" style="width:${pct}%"></div></div>
+        <div class="prod-head"><div><div class="pn">${escapeHtml(o.clientName)}</div><div class="pp">${fmt(orderPalline(o))} palline · ${fmt(orderDoughG(o))} g impasto</div></div></div>
         <div class="prod-body">${blocks}</div>
       </div>`;
   }).join('');
@@ -1122,7 +1106,7 @@ function sharePesate(per, w, pall) {
 }
 function shareSpec(per, w, pall) {
   const complete = Math.floor(pall / per), residuo = pall % per, parts = [];
-  if (complete > 0) parts.push(complete + (complete === 1 ? ' pesata da ' : ' pesate da ') + gOrKg(w * per));
+  if (complete > 0) parts.push(complete + (complete === 1 ? ' pesata da ' : ' pesate da ') + fmt(w * per) + ' g');
   if (residuo > 0) parts.push(residuo + (residuo === 1 ? ' pallina' : ' palline'));
   return parts.length ? parts.join(' + ') : '—';
 }
@@ -1139,18 +1123,12 @@ function renderShare(p) {
       <div class="irow total"><div class="l">🧫 Lievito</div><div class="v">${fmt(liev)} g</div></div>
     </div>`;
   const prodHtml = p.o.map((o, oi) => {
-    const blocks = o.it.map((it, ii) => {
-      const per = p.pc, list = sharePesate(per, it.w, it.p);
-      const rows = list.map((pe, pi) => { const key = oi + '_' + ii + '_' + pi, done = shareLocalDone.has(key);
-        return `<div class="pesata ${done ? 'done' : ''}" data-k="${key}" onclick="toggleShare('${key}')"><div class="checkbox">${done ? '✓' : ''}</div><div class="pl"><span class="dot ${pe.final ? 'final' : ''}">${pe.final ? '★' : (pi + 1)}</span>${pe.final ? '+ ' + fmt(pe.palline) + ' palline' : pe.label}<div class="sm">${pe.final ? 'resto · ' + fmt(pe.grams) + ' g' : fmt(pe.palline) + ' palline'}</div></div><div class="pv">${fmt(pe.grams)} g</div></div>`;
-      }).join('');
-      return `<div class="prod-item"><div class="prod-item-h">⚪ ${fmt(it.p)} × ${fmt(it.w)} g</div><div class="prod-spec">🔪 ${shareSpec(per, it.w, it.p)}</div>${rows}</div>`;
-    }).join('');
-    const summary = o.it.map((it) => fmt(it.p) + '×' + fmt(it.w) + 'g').join(' + ');
-    return `<div class="prod-client"><div class="prod-head"><div><div class="pn">${escapeHtml(o.n)}</div><div class="pp">${escapeHtml(summary)}</div></div></div><div class="prod-body">${blocks}</div></div>`;
+    const totPall = o.it.reduce((s, it) => s + it.p, 0);
+    const blocks = o.it.map((it) => `<div class="prod-item"><div class="prod-spec">🔪 ${shareSpec(p.pc, it.w, it.p)}</div><div class="prod-sub">⚪ ${fmt(it.p)} palline da ${fmt(it.w)} g</div></div>`).join('');
+    return `<div class="prod-client"><div class="prod-head"><div><div class="pn">${escapeHtml(o.n)}</div><div class="pp">${fmt(totPall)} palline</div></div></div><div class="prod-body">${blocks}</div></div>`;
   }).join('');
   $('view-share').innerHTML = `
-    <div class="share-banner">📋 Produzione da preparare<div class="bt">Sola lettura · spunta le pesate man mano che le fai</div></div>
+    <div class="share-banner">📋 Produzione da preparare<div class="bt">Cosa preparare per ogni cliente</div></div>
     <div class="grid" style="margin-bottom:4px">${stat('⚪', 'Totale palline', fmt(pall), '')}${stat('🌾', 'Farina', fmt(farinaKg), 'kg')}</div>
     ${ingHtml}
     <div class="section-title" style="margin-left:0">🔪 Pesate da spezzare</div>
