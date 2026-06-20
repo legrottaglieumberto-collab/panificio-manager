@@ -72,6 +72,27 @@ La Farina è la base e resta fissa a 1000 g.
 
 ---
 
+## 4-ter. Prodotti e impasti multipli
+
+### 🥐 Prodotti (focacce, panini…)
+In **⚙️ Impostazioni → Prodotti** crei i tuoi prodotti: nome, **peso** per pezzo,
+**prezzo** (a pezzo o al kg). Poi, in ogni ordine, sotto **Prodotti · quantità**
+scrivi quanti pezzi vuole il cliente. Entrano nel totale economico e compaiono
+in Produzione ("🥐 10 × Ruota di focaccia") e nel link ai dipendenti.
+Un ordine può avere solo prodotti, solo palline, o entrambi.
+
+### 🍞 Impasti multipli e dosi
+In **⚙️ Impostazioni → Impasti e dosi** puoi avere **più impasti** (es. Pane,
+Focaccia), ognuno con il suo nome, lievito e ingredienti. Il **primo** impasto è
+quello delle palline (la sua farina si calcola da sola dagli ordini).
+
+In **🔪 Produzione** la sezione **"Dosi impasti"** mostra, per ogni impasto, le
+quantità precise da preparare (farina, acqua, sale… + lievito). Per gli impasti
+extra (es. Focaccia) scrivi tu i **kg di farina** del giorno e l'app espande le
+dosi. Tutte queste dosi finiscono anche nel link/PDF che mandi ai dipendenti.
+
+---
+
 ## 4-bis. Condividere il "da farsi" con i collaboratori
 
 Tu inserisci gli ordini, i collaboratori vedono cosa preparare. Due modi:
