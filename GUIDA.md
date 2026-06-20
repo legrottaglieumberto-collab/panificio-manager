@@ -61,6 +61,15 @@ Per ogni **1 kg di farina**:
 - Spezzatrice: **37 palline** per pesata
 - La farina è **sempre arrotondata per eccesso** al kg (piccolo surplus voluto)
 
+In **⚙️ Impostazioni → Ricetta** puoi **rinominare** un ingrediente (es. Fecola →
+Fiocchi) e **aggiungerne altri** (es. Zucchero, Latte): tocca **➕ Aggiungi
+ingrediente**, scrivi nome e grammi per kg di farina, poi **Salva ricetta**.
+La Farina è la base e resta fissa a 1000 g.
+
+> In **Produzione** ogni cliente ha la specifica pronta, scritta in chiaro:
+> es. **"3 pesate da 2 kg + 5 palline"** (le pesate complete da mettere nella
+> spezzatrice, più le palline che restano).
+
 ---
 
 ## 4-bis. Condividere il "da farsi" con i collaboratori
