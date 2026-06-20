@@ -30,8 +30,10 @@ Funziona **offline**, si installa come app su iPhone/iPad/Android e (se vuoi) si
    - **incasso previsto** e prezzo medio,
    - **ingredienti da preparare** + lievito totale.
 4. Nel campo **Lievito** scegli i grammi per kg di farina di oggi: il totale si aggiorna.
-5. **🔪 Produzione**: per ogni cliente il conto pronto, es. **"3 pesate da 3.330 g
-   + 5 palline"** (le pesate complete da mettere nella spezzatrice + le palline che restano).
+5. **🔪 Produzione**: per ogni cliente il conto pronto in **pesate intere**, es.
+   **"3 pesate da 3.330 g"**, con accanto lo **scarto** (es. +18 / −5 palline)
+   rispetto a quanto richiesto. Le pesate sono arrotondate automaticamente
+   (vedi sotto), l'avanzo si riutilizza.
 6. **🖨️ PDF** o **📊 CSV** per stampare/esportare. **💾 Salva giornata** per archiviare.
 
 ---
@@ -66,9 +68,15 @@ Fiocchi) e **aggiungerne altri** (es. Zucchero, Latte): tocca **➕ Aggiungi
 ingrediente**, scrivi nome e grammi per kg di farina, poi **Salva ricetta**.
 La Farina è la base e resta fissa a 1000 g.
 
-> In **Produzione** ogni cliente ha la specifica pronta, scritta in chiaro:
-> es. **"3 pesate da 2 kg + 5 palline"** (le pesate complete da mettere nella
-> spezzatrice, più le palline che restano).
+### Arrotondamento automatico delle pesate
+Le pesate sono **sempre intere**. Quando il numero di palline non è un multiplo
+esatto di 37, l'app arrotonda da sola:
+- se lo **scarto supera metà pesata** (più di 18 palline) → fa **una pesata in più**;
+- altrimenti → si ferma alle pesate piene.
+
+L'impasto viene calcolato su queste pesate arrotondate (l'avanzo si riutilizza).
+Accanto a ogni cliente vedi lo **scarto finale** rispetto al richiesto:
+**+18 palline** (prodotte in più, in verde) oppure **−5 palline** (in meno, in rosso).
 
 ---
 
@@ -101,7 +109,7 @@ Tu inserisci gli ordini, i collaboratori vedono cosa preparare. Due modi:
 1. Vai in **Produzione** (o nella Dashboard) e premi **📤 Link rapido**.
 2. Si apre la condivisione del telefono: mandalo su **WhatsApp** al collaboratore.
 3. Lui apre il link e vede **solo il da farsi**: impasto da preparare + il conto
-   delle pesate per ogni cliente (es. "3 pesate da 3.330 g + 5 palline"). Niente
+   delle pesate per ogni cliente (es. "3 pesate da 3.330 g", con lo scarto). Niente
    prezzi, niente modifiche.
 4. Se cambi gli ordini dopo, rimanda il link (è una "fotografia" del momento).
 
