@@ -121,6 +121,14 @@
   .item-row .it-del{height:46px;border-radius:12px;background:var(--card-2);color:var(--red);font-size:17px;font-weight:700;}
   .prod-item{margin-top:10px;} .prod-item-h{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;color:var(--text-2);margin:4px 0 2px;padding-top:8px;border-top:.5px dashed var(--sep);}
   .prod-item:first-child .prod-item-h{border-top:none;padding-top:0;}
+  .prod-spec{background:color-mix(in srgb,var(--accent) 13%,transparent);color:var(--accent);font-weight:800;font-size:15px;padding:9px 12px;border-radius:11px;margin:4px 0 8px;}
+  .ing-row{display:grid;grid-template-columns:1fr 96px 34px;gap:8px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--sep);}
+  .ing-row:last-child{border-bottom:none;}
+  .ing-row input{width:100%;padding:11px 12px;font-size:16px;font-weight:600;border-radius:10px;border:1px solid var(--sep);background:var(--card-2);color:var(--text);}
+  .ing-row input:focus{outline:none;border-color:var(--accent);background:var(--bg-elev);}
+  .ing-row input[readonly]{opacity:.7;}
+  .ing-row .gwrap{display:flex;align-items:center;gap:4px;} .ing-row .gwrap .u{font-size:12px;color:var(--text-2);font-weight:700;}
+  .ing-row .it-del{height:42px;border-radius:10px;background:var(--card-2);color:var(--red);font-size:16px;font-weight:700;}
   .live-calc{background:var(--card-2);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--text-2);margin-bottom:14px;display:flex;justify-content:space-between;}
   .live-calc b{color:var(--text);font-size:16px;}
   .del-link{text-align:center;color:var(--red);font-weight:700;padding:14px;margin-top:4px;}
@@ -236,8 +244,10 @@
 
   <!-- SETTINGS -->
   <section class="view" id="view-settings">
-    <div class="section-title">Ricetta base · grammi per kg di farina</div>
+    <div class="section-title">Ricetta · ingredienti per kg di farina</div>
+    <div class="note" style="margin-top:0">Puoi rinominare un ingrediente (es. Fecola → Fiocchi) e aggiungerne altri. La Farina è la base e resta fissa a 1000 g.</div>
     <div class="set-group" id="recipeSettings"></div>
+    <button class="btn ghost small" type="button" onclick="addIngrediente()">➕ Aggiungi ingrediente</button>
 
     <div class="section-title">Spezzatrice e lievito</div>
     <div class="set-group">
@@ -347,7 +357,8 @@
 const KEY = 'panificio_state';
 const DEVKEY = 'panificio_device';
 const DEFAULT_RECIPE = { farina: 1000, fecola: 10, acqua: 500, sale: 30, olio: 50 };
-const DEFAULT_SETTINGS = { recipe: { ...DEFAULT_RECIPE }, perCycle: 37, lievitoPerKg: 3, theme: 'auto', sync: { url: '', key: '', workspace: '' } };
+function defaultIngredients() { return [{ name: 'Farina', g: 1000, base: true }, { name: 'Fecola', g: 10 }, { name: 'Acqua', g: 500 }, { name: 'Sale', g: 30 }, { name: 'Olio', g: 50 }]; }
+const DEFAULT_SETTINGS = { ingredients: defaultIngredients(), perCycle: 37, lievitoPerKg: 3, theme: 'auto', sync: { url: '', key: '', workspace: '' } };
 const DEFAULT_STATE = { orders: [], clients: {}, history: [], settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), backups: [], lastBackup: '', updatedAt: new Date().toISOString() };
 
 let state = load();
@@ -365,8 +376,13 @@ function load() {
     if (s && typeof s === 'object') {
       const merged = Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_STATE)), s);
       merged.settings = Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), s.settings || {});
-      merged.settings.recipe = Object.assign({}, DEFAULT_RECIPE, (s.settings && s.settings.recipe) || {});
       merged.settings.sync = Object.assign({ url: '', key: '', workspace: '' }, (s.settings && s.settings.sync) || {});
+      // ingredienti dinamici: usa quelli salvati, oppure migra dal vecchio formato "recipe"
+      const ss = s.settings || {};
+      if (Array.isArray(ss.ingredients) && ss.ingredients.length) merged.settings.ingredients = ss.ingredients;
+      else if (ss.recipe) { const r = ss.recipe; merged.settings.ingredients = [{ name: 'Farina', g: r.farina || 1000, base: true }, { name: 'Fecola', g: r.fecola != null ? r.fecola : 10 }, { name: 'Acqua', g: r.acqua != null ? r.acqua : 500 }, { name: 'Sale', g: r.sale != null ? r.sale : 30 }, { name: 'Olio', g: r.olio != null ? r.olio : 50 }]; }
+      else merged.settings.ingredients = defaultIngredients();
+      delete merged.settings.recipe;
       // migrazione da v1/v2 (lievitoPerKg / theme a livello root)
       if (typeof s.lievitoPerKg === 'number') merged.settings.lievitoPerKg = s.lievitoPerKg;
       if (typeof s.theme === 'string') merged.settings.theme = s.theme;
@@ -410,10 +426,36 @@ function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 /* ============================ CALCOLI ============================ */
-function recipe() { return state.settings.recipe; }
-function doughPerKg() { const r = recipe(); return r.farina + r.fecola + r.acqua + r.sale + r.olio; }
+function ingr() { if (!Array.isArray(state.settings.ingredients) || !state.settings.ingredients.length) state.settings.ingredients = defaultIngredients(); return state.settings.ingredients; }
+function emojiFor(name) {
+  const n = (name || '').toLowerCase();
+  if (/farin|farro|grano|semol/.test(n)) return '🌾';
+  if (/fiocch/.test(n)) return '🥣';
+  if (/fecol|amid|patat/.test(n)) return '🥔';
+  if (/acqua|water/.test(n)) return '💧';
+  if (/sale|salt/.test(n)) return '🧂';
+  if (/oli/.test(n)) return '🫒';
+  if (/zucch|miele|malto|sugar/.test(n)) return '🍯';
+  if (/lievit/.test(n)) return '🧫';
+  if (/latte|milk/.test(n)) return '🥛';
+  if (/uov|egg/.test(n)) return '🥚';
+  if (/burr|butter/.test(n)) return '🧈';
+  if (/semi|sesam|seed/.test(n)) return '🌰';
+  if (/strutt|grass/.test(n)) return '🧈';
+  return '🥣';
+}
+function doughPerKg() { return ingr().reduce((s, i) => s + num(i.g), 0); }
 function perCycle() { return Math.max(1, Math.round(num(state.settings.perCycle) || 37)); }
 function lievitoDefault() { return num(state.settings.lievitoPerKg); }
+// "3 pesate da 2 kg + 5 palline"
+function pesataSpec(it) {
+  const per = perCycle(), peso = num(it.pesoPallina), pall = num(it.palline);
+  const complete = Math.floor(pall / per), residuo = pall % per, pesoPesata = peso * per;
+  const parts = [];
+  if (complete > 0) parts.push(complete + (complete === 1 ? ' pesata da ' : ' pesate da ') + gOrKg(pesoPesata));
+  if (residuo > 0) parts.push(residuo + (residuo === 1 ? ' pallina' : ' palline'));
+  return parts.length ? parts.join(' + ') : '—';
+}
 
 // Ogni ordine ha più righe (items): {palline, pesoPallina, done:[]}. Fallback su vecchio formato a riga singola.
 function orderItems(o) {
@@ -460,7 +502,7 @@ function dayTotals() {
   t.ingredients = ingredientsFor(t.farinaKg); t.lievito = t.farinaKg * lievitoDefault();
   return t;
 }
-function ingredientsFor(farinaKg) { const r = recipe(); return { farina: farinaKg * r.farina, fecola: farinaKg * r.fecola, acqua: farinaKg * r.acqua, sale: farinaKg * r.sale, olio: farinaKg * r.olio }; }
+function ingredientsFor(farinaKg) { return ingr().map((i) => ({ name: i.name, emoji: emojiFor(i.name), grams: num(i.g) * farinaKg, base: !!i.base })); }
 
 /* ============================ RENDER ============================ */
 function render() {
@@ -479,25 +521,14 @@ function renderDash() {
     ${stat('🌾', 'Farina necessaria', fmt(t.farinaKg), 'kg')}
     ${statAccent('💶', 'Incasso previsto', money(t.incasso), t.kg > 0 ? 'Media ' + money(t.prezzoMedio) + '/kg · 🧫 ' + fmt(t.lievito) + ' g lievito' : '')}`;
   renderTrend();
-  const ing = t.ingredients;
-  $('ingCard').innerHTML = `
-    <div class="irow"><div class="l"><span class="e">🌾</span>Farina</div><div class="v">${gOrKg(ing.farina)}</div></div>
-    <div class="irow"><div class="l"><span class="e">🥔</span>Fecola</div><div class="v">${gOrKg(ing.fecola)}</div></div>
-    <div class="irow"><div class="l"><span class="e">💧</span>Acqua</div><div class="v">${gOrKg(ing.acqua)}</div></div>
-    <div class="irow"><div class="l"><span class="e">🧂</span>Sale</div><div class="v">${gOrKg(ing.sale)}</div></div>
-    <div class="irow"><div class="l"><span class="e">🫒</span>Olio</div><div class="v">${gOrKg(ing.olio)}</div></div>
+  const ingRows = t.ingredients.map((x) => `<div class="irow"><div class="l"><span class="e">${x.emoji}</span>${escapeHtml(x.name)}</div><div class="v">${gOrKg(x.grams)}</div></div>`).join('');
+  $('ingCard').innerHTML = ingRows + `
     <div class="lievito-box owner-only"><span class="e" style="font-size:19px">🧫</span><div style="flex:1"><div style="font-weight:700">Lievito</div><div style="font-size:13px;color:var(--text-2)">grammi per kg di farina</div></div><input id="lievInput" inputmode="decimal" value="${inp(lievitoDefault())}" /></div>
     <div class="irow total"><div class="l">🧫 Lievito totale (${fmt(t.farinaKg)} kg × ${fmt(lievitoDefault())} g)</div><div class="v">${fmt(t.lievito, 0)} g</div></div>`;
   const li = $('lievInput'); li.addEventListener('change', () => { state.settings.lievitoPerKg = num(li.value); save(); render(); });
   // ricetta card
-  const r = recipe();
-  $('recipeGrid').innerHTML = `
-    <div class="ri"><div class="rn">🌾 Farina</div><div class="rv">${fmt(r.farina)} g</div></div>
-    <div class="ri"><div class="rn">🥔 Fecola</div><div class="rv">${fmt(r.fecola)} g</div></div>
-    <div class="ri"><div class="rn">💧 Acqua</div><div class="rv">${fmt(r.acqua)} g</div></div>
-    <div class="ri"><div class="rn">🧂 Sale</div><div class="rv">${fmt(r.sale)} g</div></div>
-    <div class="ri"><div class="rn">🫒 Olio</div><div class="rv">${fmt(r.olio)} g</div></div>
-    <div class="ri"><div class="rn">🧫 Lievito</div><div class="rv">${fmt(lievitoDefault())} g/kg</div></div>`;
+  $('recipeGrid').innerHTML = ingr().map((i) => `<div class="ri"><div class="rn">${emojiFor(i.name)} ${escapeHtml(i.name)}</div><div class="rv">${fmt(num(i.g))} g</div></div>`).join('') +
+    `<div class="ri"><div class="rn">🧫 Lievito</div><div class="rv">${fmt(lievitoDefault())} g/kg</div></div>`;
 }
 function stat(e, l, v, u) { return `<div class="stat"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}${u ? ' <small>' + u + '</small>' : ''}</div></div>`; }
 function statAccent(e, l, v, s) { return `<div class="stat accent wide owner-only" id="incassoCard"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}</div>${s ? '<div class="label" style="margin-top:4px">' + s + '</div>' : ''}</div>`; }
@@ -547,16 +578,13 @@ function renderProd() {
       const rows = list.map((p, pi) => `
         <div class="pesata ${it.done[pi] ? 'done' : ''}" onclick="togglePesata('${o.id}',${ii},${pi})">
           <div class="checkbox">${it.done[pi] ? '✓' : ''}</div>
-          <div class="pl"><span class="dot ${p.final ? 'final' : ''}">${p.final ? '★' : (pi + 1)}</span>${p.label}<div class="sm">${fmt(p.palline)} palline</div></div>
+          <div class="pl"><span class="dot ${p.final ? 'final' : ''}">${p.final ? '★' : (pi + 1)}</span>${p.final ? '+ ' + fmt(p.palline) + ' palline' : p.label}<div class="sm">${p.final ? 'resto · ' + fmt(p.grams) + ' g' : fmt(p.palline) + ' palline'}</div></div>
           <div class="pv">${fmt(p.grams)} g</div>
         </div>`).join('');
       return `
         <div class="prod-item">
-          <div class="prod-item-h">⚪ ${fmt(s.palline)} × ${fmt(s.peso)} g
-            <span class="chip g" style="margin-left:auto">✔ ${s.complete}</span>
-            <span class="chip ${s.residuo ? 'b' : ''}">↳ ${s.residuo}</span>
-            <span class="chip">⚙️ ${fmt(s.pesoPesata)} g</span>
-          </div>
+          <div class="prod-item-h">⚪ ${fmt(s.palline)} × ${fmt(s.peso)} g</div>
+          <div class="prod-spec">🔪 ${pesataSpec(it)}</div>
           ${rows}
         </div>`;
     }).join('');
@@ -617,10 +645,15 @@ function renderDatalist() { $('clientsDL').innerHTML = Object.keys(state.clients
 function emptyState(i, t, s) { return `<div class="empty"><div class="big">${i}</div><div style="font-weight:700;font-size:18px;color:var(--text)">${t}</div><div style="margin-top:4px">${s}</div></div>`; }
 
 /* ============================ SETTINGS RENDER ============================ */
+function ingRowHtml(name, g, base) {
+  return `<div class="ing-row">
+    <input class="rc-name" value="${escapeHtml(name)}" placeholder="Nome ingrediente" ${base ? 'readonly' : ''} />
+    <div class="gwrap"><input class="rc-g" inputmode="decimal" value="${g === '' ? '' : inp(num(g))}" placeholder="g" ${base ? 'readonly' : ''} /><span class="u">g/kg</span></div>
+    ${base ? '<span></span>' : '<button class="it-del" type="button" title="Rimuovi" onclick="this.closest(\'.ing-row\').remove()">✕</button>'}
+  </div>`;
+}
 function renderSettings() {
-  const r = recipe();
-  const items = [['farina', '🌾 Farina'], ['fecola', '🥔 Fecola'], ['acqua', '💧 Acqua'], ['sale', '🧂 Sale'], ['olio', '🫒 Olio']];
-  $('recipeSettings').innerHTML = items.map(([k, l]) => `<div class="set-row"><div class="sl">${l}</div><div style="display:flex;align-items:center;gap:6px"><input id="rc-${k}" inputmode="decimal" value="${inp(r[k])}" /><span class="sd">g</span></div></div>`).join('');
+  $('recipeSettings').innerHTML = ingr().map((i, k) => ingRowHtml(i.name, i.g, k === 0 || !!i.base)).join('');
   $('set-percycle').value = perCycle();
   $('set-lievito').value = inp(lievitoDefault());
   const sy = state.settings.sync;
@@ -641,17 +674,28 @@ create policy "accesso anon" on panificio_sync
   for all using (true) with check (true);
 alter publication supabase_realtime add table panificio_sync;`;
 
+function addIngrediente() {
+  $('recipeSettings').insertAdjacentHTML('beforeend', ingRowHtml('', '', false));
+  const names = $('recipeSettings').querySelectorAll('.rc-name'); const last = names[names.length - 1]; if (last) last.focus();
+}
 function saveRecipe() {
-  const r = recipe();
-  ['farina', 'fecola', 'acqua', 'sale', 'olio'].forEach((k) => { const v = num($('rc-' + k).value); if (v > 0) r[k] = v; });
+  const rows = [...$('recipeSettings').querySelectorAll('.ing-row')];
+  const list = [];
+  rows.forEach((row, k) => {
+    const name = row.querySelector('.rc-name').value.trim(); const g = num(row.querySelector('.rc-g').value);
+    if (k === 0) list.push({ name: name || 'Farina', g: g > 0 ? g : 1000, base: true });
+    else if (name && g > 0) list.push({ name, g });
+  });
+  if (!list.length || !list[0].base) list.unshift({ name: 'Farina', g: 1000, base: true });
+  state.settings.ingredients = list;
   const pc = Math.round(num($('set-percycle').value)); if (pc >= 1) state.settings.perCycle = pc;
   const lv = num($('set-lievito').value); if (lv >= 0) state.settings.lievitoPerKg = lv;
-  save(); render(); toast('Ricetta salvata ✓');
+  save(); render(); renderSettings(); toast('Ricetta salvata ✓');
 }
 function resetRecipe() {
-  if (!confirm('Ripristinare la ricetta standard (1000/10/500/30/50, 37 palline, 3 g/kg)?')) return;
-  state.settings.recipe = { ...DEFAULT_RECIPE }; state.settings.perCycle = 37; state.settings.lievitoPerKg = 3;
-  save(); render(); toast('Ricetta ripristinata');
+  if (!confirm('Ripristinare la ricetta standard (Farina 1000, Fecola 10, Acqua 500, Sale 30, Olio 50 · 37 palline · 3 g/kg)?')) return;
+  state.settings.ingredients = defaultIngredients(); state.settings.perCycle = 37; state.settings.lievitoPerKg = 3;
+  save(); render(); renderSettings(); toast('Ricetta ripristinata');
 }
 
 /* ============================ ORDER SHEET ============================ */
@@ -744,12 +788,13 @@ function calcInverse() {
   const farinaKg = num($('inv-farina').value), peso = num($('inv-peso').value) || 90;
   const doughG = farinaKg * doughPerKg(), palline = Math.floor(doughG / peso), avanzo = doughG - palline * peso;
   const ing = ingredientsFor(farinaKg), liev = farinaKg * lievitoDefault(), per = perCycle();
+  const extra = ing.filter((x) => !x.base && !/farin/i.test(x.name)).map((x) => x.emoji + ' ' + gOrKg(x.grams)).join(' · ');
   $('invResult').innerHTML = farinaKg > 0 ? `
     <div class="irow"><div class="l">⚖️ Impasto ottenibile</div><div class="v">${gOrKg(doughG)}</div></div>
     <div class="irow"><div class="l">⚪ Palline da ${fmt(peso)} g</div><div class="v">${fmt(palline)}</div></div>
     <div class="irow"><div class="l">➗ Pesate (${per}/pesata)</div><div class="v">${Math.floor(palline / per)} + ${palline % per}</div></div>
     <div class="irow"><div class="l">🧫 Lievito (${fmt(lievitoDefault())} g/kg)</div><div class="v">${fmt(liev)} g</div></div>
-    <div class="irow"><div class="l">💧 Acqua · 🧂 Sale · 🫒 Olio</div><div class="v" style="font-size:14px">${gOrKg(ing.acqua)} · ${gOrKg(ing.sale)} · ${gOrKg(ing.olio)}</div></div>
+    <div class="irow"><div class="l">🧂 Ingredienti</div><div class="v" style="font-size:13px">${extra}</div></div>
     <div class="irow total"><div class="l">↩️ Avanzo impasto</div><div class="v">${fmt(avanzo)} g</div></div>` : '<div class="empty" style="padding:20px"><div class="big">🌾</div>Inserisci i kg di farina</div>';
 }
 ['inv-farina', 'inv-peso'].forEach((id) => $(id).addEventListener('input', calcInverse));
@@ -827,8 +872,7 @@ function exportPDF() {
   // ingredienti
   if (y > 235) { doc.addPage(); y = 18; }
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.text('Ingredienti da preparare', L, y); y += 4;
-  const ing = t.ingredients;
-  const rows = [['🌾 Farina', gOrKg(ing.farina)], ['🥔 Fecola', gOrKg(ing.fecola)], ['💧 Acqua', gOrKg(ing.acqua)], ['🧂 Sale', gOrKg(ing.sale)], ['🫒 Olio', gOrKg(ing.olio)], ['🧫 Lievito (' + fmt(lievitoDefault()) + ' g/kg)', fmt(t.lievito) + ' g']].map((r) => [r[0].replace(/^[^ ]+ /, ''), r[1]]);
+  const rows = t.ingredients.map((x) => [x.name, gOrKg(x.grams)]).concat([['Lievito (' + fmt(lievitoDefault()) + ' g/kg)', fmt(t.lievito) + ' g']]);
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
   rows.forEach((r) => { doc.setDrawColor(235); doc.roundedRect(L, y, R - L, 8, 1, 1); doc.text(r[0], L + 3, y + 5.5); doc.setFont('helvetica', 'bold'); doc.text(r[1], R - 3, y + 5.5, { align: 'right' }); doc.setFont('helvetica', 'normal'); y += 9; });
   doc.setFontSize(8); doc.setTextColor(160); doc.text('Generato da Panificio Manager Pro · ' + new Date().toLocaleString('it-IT'), L, 290);
@@ -877,7 +921,7 @@ function exportCSV(which) {
   state.orders.forEach((o) => { orderItems(o).forEach((it) => { const s = spezzatrice(it); const kg = num(it.palline) * num(it.pesoPallina) / 1000; rows.push([o.clientName, fmt(num(it.palline)), fmt(num(it.pesoPallina)), fmt(kg, 2), fmt(num(o.prezzoKg), 2), fmt(kg * num(o.prezzoKg), 2), s.complete, fmt(s.pesoPesata), s.residuo, fmt(s.pesoUltima)]); }); });
   rows.push([]); rows.push(['TOTALE', fmt(t.palline), '', fmt(t.kg, 2), 'media ' + fmt(t.prezzoMedio, 2), fmt(t.incasso, 2)]);
   rows.push(['Farina kg', fmt(t.farinaKg)]); rows.push(['Lievito g', fmt(t.lievito)]);
-  rows.push(['Acqua g', fmt(t.ingredients.acqua)]); rows.push(['Sale g', fmt(t.ingredients.sale)]); rows.push(['Olio g', fmt(t.ingredients.olio)]); rows.push(['Fecola g', fmt(t.ingredients.fecola)]);
+  t.ingredients.filter((x) => !/farin/i.test(x.name)).forEach((x) => rows.push([x.name + ' g', fmt(x.grams)]));
   downloadFile('Panificio_' + todayKey() + '.csv', rows.map((r) => r.map(csvCell).join(';')).join('\r\n')); toast('CSV giornata scaricato ✓');
 }
 
@@ -890,7 +934,7 @@ function autoBackup() {
   if (state.backups.length > 14) state.backups = state.backups.slice(-14);
   state.lastBackup = today; save({ remote: true });
 }
-function serializableState() { return { orders: state.orders, clients: state.clients, history: state.history, settings: { recipe: state.settings.recipe, perCycle: state.settings.perCycle, lievitoPerKg: state.settings.lievitoPerKg } }; }
+function serializableState() { return { orders: state.orders, clients: state.clients, history: state.history, settings: { ingredients: state.settings.ingredients, perCycle: state.settings.perCycle, lievitoPerKg: state.settings.lievitoPerKg } }; }
 function downloadBackup() { downloadFile('Panificio_backup_' + todayKey() + '.json', JSON.stringify(state, null, 2), 'application/json'); toast('Backup scaricato ✓'); }
 $('restoreFile').addEventListener('change', (e) => {
   const f = e.target.files[0]; if (!f) return; const r = new FileReader();
@@ -899,7 +943,7 @@ $('restoreFile').addEventListener('change', (e) => {
       const obj = JSON.parse(r.result); const data = obj.data ? obj.data : obj;
       if (!confirm('Ripristinare questi dati? Sostituiranno ordini, clienti e storico attuali.')) return;
       if (data.orders) { state.orders = data.orders; normalizeOrders(state.orders); } if (data.clients) state.clients = data.clients; if (data.history) state.history = data.history;
-      if (data.settings) { if (data.settings.recipe) state.settings.recipe = Object.assign({}, DEFAULT_RECIPE, data.settings.recipe); if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; if (data.settings.lievitoPerKg != null) state.settings.lievitoPerKg = data.settings.lievitoPerKg; }
+      if (data.settings) { if (Array.isArray(data.settings.ingredients) && data.settings.ingredients.length) state.settings.ingredients = data.settings.ingredients; else if (data.settings.recipe) { const r = data.settings.recipe; state.settings.ingredients = [{ name: 'Farina', g: r.farina || 1000, base: true }, { name: 'Fecola', g: r.fecola != null ? r.fecola : 10 }, { name: 'Acqua', g: r.acqua != null ? r.acqua : 500 }, { name: 'Sale', g: r.sale != null ? r.sale : 30 }, { name: 'Olio', g: r.olio != null ? r.olio : 50 }]; } if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; if (data.settings.lievitoPerKg != null) state.settings.lievitoPerKg = data.settings.lievitoPerKg; }
       save(); render(); toast('Dati ripristinati ✓');
     } catch (err) { toast('File non valido'); }
   };
@@ -931,7 +975,7 @@ async function pushNow() {
 function applyRemote(data, updatedAt) {
   applyingRemote = true;
   if (data.orders) { state.orders = data.orders; normalizeOrders(state.orders); } if (data.clients) state.clients = data.clients; if (data.history) state.history = data.history;
-  if (data.settings) { if (data.settings.recipe) state.settings.recipe = Object.assign({}, DEFAULT_RECIPE, data.settings.recipe); if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; if (data.settings.lievitoPerKg != null) state.settings.lievitoPerKg = data.settings.lievitoPerKg; }
+  if (data.settings) { if (Array.isArray(data.settings.ingredients) && data.settings.ingredients.length) state.settings.ingredients = data.settings.ingredients; else if (data.settings.recipe) { const r = data.settings.recipe; state.settings.ingredients = [{ name: 'Farina', g: r.farina || 1000, base: true }, { name: 'Fecola', g: r.fecola != null ? r.fecola : 10 }, { name: 'Acqua', g: r.acqua != null ? r.acqua : 500 }, { name: 'Sale', g: r.sale != null ? r.sale : 30 }, { name: 'Olio', g: r.olio != null ? r.olio : 50 }]; } if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; if (data.settings.lievitoPerKg != null) state.settings.lievitoPerKg = data.settings.lievitoPerKg; }
   state.updatedAt = updatedAt || new Date().toISOString();
   save({ remote: true }); render(); applyingRemote = false;
 }
@@ -1038,7 +1082,7 @@ function doShare(title, text, url) {
 }
 // --- Link rapido: snapshot sola lettura, senza prezzi ---
 function sharePayload() {
-  return { v: 1, t: 'prod', date: new Date().toISOString(), rc: state.settings.recipe, pc: perCycle(), lv: lievitoDefault(),
+  return { v: 2, t: 'prod', date: new Date().toISOString(), ig: ingr().map((i) => ({ n: i.name, g: num(i.g) })), pc: perCycle(), lv: lievitoDefault(),
     o: state.orders.map((o) => ({ n: o.clientName, it: orderItems(o).map((it) => ({ p: num(it.palline), w: num(it.pesoPallina) })) })) };
 }
 function shareProduzione() {
@@ -1076,29 +1120,31 @@ function sharePesate(per, w, pall) {
   if (residuo > 0) arr.push({ label: 'Pesata finale', palline: residuo, grams: w * residuo, final: true });
   return arr;
 }
+function shareSpec(per, w, pall) {
+  const complete = Math.floor(pall / per), residuo = pall % per, parts = [];
+  if (complete > 0) parts.push(complete + (complete === 1 ? ' pesata da ' : ' pesate da ') + gOrKg(w * per));
+  if (residuo > 0) parts.push(residuo + (residuo === 1 ? ' pallina' : ' palline'));
+  return parts.length ? parts.join(' + ') : '—';
+}
 function renderShare(p) {
-  const rc = p.rc, dpk = rc.farina + rc.fecola + rc.acqua + rc.sale + rc.olio; let doughG = 0, pall = 0;
+  const list0 = p.ig || (p.rc ? [{ n: 'Farina', g: p.rc.farina }, { n: 'Fecola', g: p.rc.fecola }, { n: 'Acqua', g: p.rc.acqua }, { n: 'Sale', g: p.rc.sale }, { n: 'Olio', g: p.rc.olio }] : []);
+  const dpk = list0.reduce((s, i) => s + i.g, 0); let doughG = 0, pall = 0;
   p.o.forEach((o) => o.it.forEach((it) => { doughG += it.p * it.w; pall += it.p; }));
   const farinaKg = Math.ceil(doughG / dpk - 1e-9);
-  const ing = { farina: farinaKg * rc.farina, fecola: farinaKg * rc.fecola, acqua: farinaKg * rc.acqua, sale: farinaKg * rc.sale, olio: farinaKg * rc.olio };
   const liev = farinaKg * p.lv;
   const ingHtml = `
     <div class="section-title" style="margin-left:0">🧂 Impasto da preparare</div>
     <div class="card">
-      <div class="irow"><div class="l"><span class="e">🌾</span>Farina</div><div class="v">${gOrKg(ing.farina)}</div></div>
-      <div class="irow"><div class="l"><span class="e">🥔</span>Fecola</div><div class="v">${gOrKg(ing.fecola)}</div></div>
-      <div class="irow"><div class="l"><span class="e">💧</span>Acqua</div><div class="v">${gOrKg(ing.acqua)}</div></div>
-      <div class="irow"><div class="l"><span class="e">🧂</span>Sale</div><div class="v">${gOrKg(ing.sale)}</div></div>
-      <div class="irow"><div class="l"><span class="e">🫒</span>Olio</div><div class="v">${gOrKg(ing.olio)}</div></div>
+      ${list0.map((i) => `<div class="irow"><div class="l"><span class="e">${emojiFor(i.n)}</span>${escapeHtml(i.n)}</div><div class="v">${gOrKg(i.g * farinaKg)}</div></div>`).join('')}
       <div class="irow total"><div class="l">🧫 Lievito</div><div class="v">${fmt(liev)} g</div></div>
     </div>`;
   const prodHtml = p.o.map((o, oi) => {
     const blocks = o.it.map((it, ii) => {
-      const per = p.pc, list = sharePesate(per, it.w, it.p), complete = Math.floor(it.p / per), residuo = it.p % per;
+      const per = p.pc, list = sharePesate(per, it.w, it.p);
       const rows = list.map((pe, pi) => { const key = oi + '_' + ii + '_' + pi, done = shareLocalDone.has(key);
-        return `<div class="pesata ${done ? 'done' : ''}" data-k="${key}" onclick="toggleShare('${key}')"><div class="checkbox">${done ? '✓' : ''}</div><div class="pl"><span class="dot ${pe.final ? 'final' : ''}">${pe.final ? '★' : (pi + 1)}</span>${pe.label}<div class="sm">${fmt(pe.palline)} palline</div></div><div class="pv">${fmt(pe.grams)} g</div></div>`;
+        return `<div class="pesata ${done ? 'done' : ''}" data-k="${key}" onclick="toggleShare('${key}')"><div class="checkbox">${done ? '✓' : ''}</div><div class="pl"><span class="dot ${pe.final ? 'final' : ''}">${pe.final ? '★' : (pi + 1)}</span>${pe.final ? '+ ' + fmt(pe.palline) + ' palline' : pe.label}<div class="sm">${pe.final ? 'resto · ' + fmt(pe.grams) + ' g' : fmt(pe.palline) + ' palline'}</div></div><div class="pv">${fmt(pe.grams)} g</div></div>`;
       }).join('');
-      return `<div class="prod-item"><div class="prod-item-h">⚪ ${fmt(it.p)} × ${fmt(it.w)} g<span class="chip g" style="margin-left:auto">✔ ${complete}</span><span class="chip ${residuo ? 'b' : ''}">↳ ${residuo}</span><span class="chip">⚙️ ${fmt(it.w * per)} g</span></div>${rows}</div>`;
+      return `<div class="prod-item"><div class="prod-item-h">⚪ ${fmt(it.p)} × ${fmt(it.w)} g</div><div class="prod-spec">🔪 ${shareSpec(per, it.w, it.p)}</div>${rows}</div>`;
     }).join('');
     const summary = o.it.map((it) => fmt(it.p) + '×' + fmt(it.w) + 'g').join(' + ');
     return `<div class="prod-client"><div class="prod-head"><div><div class="pn">${escapeHtml(o.n)}</div><div class="pp">${escapeHtml(summary)}</div></div></div><div class="prod-body">${blocks}</div></div>`;
