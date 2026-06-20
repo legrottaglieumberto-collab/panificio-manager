@@ -124,6 +124,9 @@
   .prod-spec{background:color-mix(in srgb,var(--accent) 13%,transparent);color:var(--accent);font-weight:800;font-size:16px;padding:11px 13px;border-radius:11px;margin:0 0 4px;}
   .prod-sub{font-size:13px;color:var(--text-2);font-weight:600;margin:0 2px 2px;}
   .prod-spec-b{background:color-mix(in srgb,var(--blue) 13%,transparent);color:var(--blue);}
+  .scarto{display:inline-block;font-size:13px;font-weight:800;padding:2px 9px;border-radius:20px;margin-left:6px;vertical-align:middle;}
+  .scarto.pos{background:color-mix(in srgb,var(--green) 20%,transparent);color:var(--green);}
+  .scarto.neg{background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red);}
   .ing-row{display:grid;grid-template-columns:1fr 96px 34px;gap:8px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--sep);}
   .ing-row:last-child{border-bottom:none;}
   .ing-row input{width:100%;padding:11px 12px;font-size:16px;font-weight:600;border-radius:10px;border:1px solid var(--sep);background:var(--card-2);color:var(--text);}
@@ -495,14 +498,25 @@ function emojiFor(name) {
 function doughPerKg() { return ingr().reduce((s, i) => s + num(i.g), 0); }
 function perCycle() { return Math.max(1, Math.round(num(state.settings.perCycle) || 37)); }
 function lievitoDefault() { return num(mainImpasto().lievitoPerKg); }
-// "3 pesate da 2 kg + 5 palline"
+// ARROTONDAMENTO PESATE: pesate sempre intere; se lo scarto supera metà pesata → su, altrimenti → giù
+function roundedPesate(it) {
+  const per = perCycle(), N = num(it.palline);
+  if (N <= 0) return 0;
+  const q = Math.floor(N / per), r = N - q * per;
+  return (r * 2 > per) ? q + 1 : q;
+}
+function itemProducedPalline(it) { return roundedPesate(it) * perCycle(); }
+function itemProducedG(it) { return itemProducedPalline(it) * num(it.pesoPallina); }
+function itemScarto(it) { return itemProducedPalline(it) - num(it.palline); } // + prodotte in più, − in meno
+function orderProducedPalline(o) { return orderItems(o).reduce((s, it) => s + itemProducedPalline(it), 0); }
+function orderProducedG(o) { return orderItems(o).reduce((s, it) => s + itemProducedG(it), 0); }
+function orderScarto(o) { return orderProducedPalline(o) - orderPalline(o); }
+function scartoText(s) { return s === 0 ? 'esatto' : (s > 0 ? '+' : '−') + fmt(Math.abs(s)) + ' palline'; }
+// "3 pesate da 3.330 g" (pesate intere, arrotondate)
 function pesataSpec(it) {
-  const per = perCycle(), peso = num(it.pesoPallina), pall = num(it.palline);
-  const complete = Math.floor(pall / per), residuo = pall % per, pesoPesata = peso * per;
-  const parts = [];
-  if (complete > 0) parts.push(complete + (complete === 1 ? ' pesata da ' : ' pesate da ') + fmt(pesoPesata) + ' g');
-  if (residuo > 0) parts.push(residuo + (residuo === 1 ? ' pallina' : ' palline'));
-  return parts.length ? parts.join(' + ') : '—';
+  const per = perCycle(), pesate = roundedPesate(it);
+  if (pesate <= 0) return '0 pesate (da scorta)';
+  return pesate + (pesate === 1 ? ' pesata da ' : ' pesate da ') + fmt(num(it.pesoPallina) * per) + ' g';
 }
 
 // Ogni ordine ha più righe (items): {palline, pesoPallina, done:[]}. Fallback su vecchio formato a riga singola.
@@ -545,15 +559,18 @@ function spezzatrice(o) {
   return { palline, peso, per, complete: Math.floor(palline / per), residuo: palline % per, pesoPesata: peso * per, pesoUltima: (palline % per) * peso, totale: palline * peso };
 }
 function dayTotals() {
-  const t = { palline: 0, doughG: 0, incasso: 0, pallineIncasso: 0, prodottiIncasso: 0, products: {} }; const names = new Set();
+  const t = { palline: 0, producedPalline: 0, doughG: 0, requestedG: 0, incasso: 0, pallineIncasso: 0, prodottiIncasso: 0, products: {}, scarto: 0 }; const names = new Set();
   for (const o of state.orders) {
     names.add((o.clientName || '').toLowerCase().trim());
-    t.palline += orderPalline(o); t.doughG += orderDoughG(o);
+    t.palline += orderPalline(o); t.producedPalline += orderProducedPalline(o);
+    t.requestedG += orderDoughG(o); t.doughG += orderProducedG(o); // doughG = impasto effettivo (pesate arrotondate)
     t.pallineIncasso += orderPallineTotal(o); t.prodottiIncasso += orderProductsTotal(o);
     orderProducts(o).forEach((p) => { const k = p.name || '?'; if (!t.products[k]) t.products[k] = { name: k, qty: 0, peso: num(p.peso) }; t.products[k].qty += num(p.qty); });
   }
+  t.scarto = t.producedPalline - t.palline;
   t.incasso = t.pallineIncasso + t.prodottiIncasso;
-  t.clienti = names.size; t.kg = t.doughG / 1000; t.prezzoMedio = t.kg > 0 ? t.pallineIncasso / t.kg : 0;
+  t.clienti = names.size; t.kg = t.doughG / 1000; t.requestedKg = t.requestedG / 1000;
+  t.prezzoMedio = t.requestedKg > 0 ? t.pallineIncasso / t.requestedKg : 0;
   t.farinaKg = safeCeil(t.doughG / doughPerKg());
   t.ingredients = ingredientsFor(t.farinaKg); t.lievito = t.farinaKg * lievitoDefault();
   return t;
@@ -575,7 +592,7 @@ function renderDash() {
     ${stat('⚪', 'Totale palline', fmt(t.palline), '')}
     ${stat('⚖️', 'Peso impasto', fmt(t.kg, t.kg % 1 === 0 ? 0 : 1), 'kg')}
     ${stat('🌾', 'Farina necessaria', fmt(t.farinaKg), 'kg')}
-    ${statAccent('💶', 'Incasso previsto', money(t.incasso), t.kg > 0 ? 'Media ' + money(t.prezzoMedio) + '/kg · 🧫 ' + fmt(t.lievito) + ' g lievito' : '')}`;
+    ${statAccent('💶', 'Incasso previsto', money(t.incasso), t.kg > 0 ? 'Media ' + money(t.prezzoMedio) + '/kg · 🧫 ' + fmt(t.lievito) + ' g lievito' + (t.scarto !== 0 ? ' · scarto ' + scartoText(t.scarto) : '') : '')}`;
   renderTrend();
   const ingRows = t.ingredients.map((x) => `<div class="irow"><div class="l"><span class="e">${x.emoji}</span>${escapeHtml(x.name)}</div><div class="v">${gOrKg(x.grams)}</div></div>`).join('');
   $('ingCard').innerHTML = ingRows + `
@@ -637,17 +654,21 @@ function renderProd() {
   const sorted = [...state.orders].sort((a, b) => orderMaxPeso(b) - orderMaxPeso(a) || orderPalline(b) - orderPalline(a));
   el.innerHTML = sorted.map((o) => {
     const items = orderItems(o);
-    const blocks = items.map((it) => `
+    const blocks = items.map((it) => {
+      const s = itemScarto(it); const sc = s === 0 ? '' : `<span class="scarto ${s > 0 ? 'pos' : 'neg'}">${scartoText(s)}</span>`;
+      return `
       <div class="prod-item">
-        <div class="prod-spec">🔪 ${pesataSpec(it)}</div>
-        <div class="prod-sub">⚪ ${fmt(num(it.palline))} palline da ${fmt(num(it.pesoPallina))} g</div>
-      </div>`).join('');
+        <div class="prod-spec">🔪 ${pesataSpec(it)} ${sc}</div>
+        <div class="prod-sub">⚪ ${fmt(num(it.palline))} richieste → ${fmt(itemProducedPalline(it))} prodotte · ${fmt(num(it.pesoPallina))} g/pallina</div>
+      </div>`;
+    }).join('');
     const prodLines = orderProducts(o).map((p) => `
       <div class="prod-item">
         <div class="prod-spec prod-spec-b">🥐 ${fmt(num(p.qty))} × ${escapeHtml(p.name)}</div>
         <div class="prod-sub">${fmt(num(p.peso))} g a pezzo</div>
       </div>`).join('');
-    const head = items.length ? `${fmt(orderPalline(o))} palline · ${fmt(orderDoughG(o))} g impasto` : `${fmt(orderProducts(o).reduce((s, p) => s + num(p.qty), 0))} pezzi`;
+    const sca = orderScarto(o);
+    const head = items.length ? `${fmt(orderPalline(o))} richieste → ${fmt(orderProducedPalline(o))} prodotte${sca !== 0 ? ' · ' + scartoText(sca) : ''}` : `${fmt(orderProducts(o).reduce((s, p) => s + num(p.qty), 0))} pezzi`;
     return `
       <div class="prod-client">
         <div class="prod-head"><div><div class="pn">${escapeHtml(o.clientName)}</div><div class="pp">${head}</div></div></div>
@@ -992,7 +1013,7 @@ function exportPDF() {
     const its = orderItems(o);
     its.forEach((it, ii) => {
       if (y > 250) { doc.addPage(); y = 18; head(); doc.setFontSize(9); }
-      const s = spezzatrice(it); const pez = s.complete + 'x' + fmt(s.pesoPesata) + 'g' + (s.residuo ? ' +' + fmt(s.pesoUltima) + 'g' : '');
+      const pesate = roundedPesate(it), sc = itemScarto(it); const pez = pesate + 'x' + fmt(num(it.pesoPallina) * perCycle()) + 'g' + (sc !== 0 ? ' (' + (sc > 0 ? '+' : '-') + fmt(Math.abs(sc)) + ')' : '');
       doc.text(ii === 0 ? String(o.clientName).slice(0, 24) : '   ↳', cols[0][1], y + 5);
       doc.text(fmt(num(it.palline)), cols[1][1], y + 5, { align: 'right' });
       doc.text(fmt(num(it.pesoPallina)) + ' g', cols[2][1], y + 5, { align: 'right' });
@@ -1071,8 +1092,8 @@ function exportCSV(which) {
   }
   if (!state.orders.length) { toast('Aggiungi ordini prima di esportare'); return; }
   const t = dayTotals();
-  const rows = [['PALLINE'], ['Cliente', 'Palline', 'Peso pallina g', 'Kg', 'Prezzo EUR/kg', 'Totale riga EUR', 'Pesate complete', 'Peso pesata g', 'Residuo palline', 'Peso ultima pesata g']];
-  state.orders.forEach((o) => { orderItems(o).forEach((it) => { const s = spezzatrice(it); const kg = num(it.palline) * num(it.pesoPallina) / 1000; rows.push([o.clientName, fmt(num(it.palline)), fmt(num(it.pesoPallina)), fmt(kg, 2), fmt(num(o.prezzoKg), 2), fmt(kg * num(o.prezzoKg), 2), s.complete, fmt(s.pesoPesata), s.residuo, fmt(s.pesoUltima)]); }); });
+  const rows = [['PALLINE'], ['Cliente', 'Palline richieste', 'Peso pallina g', 'Kg', 'Prezzo EUR/kg', 'Totale riga EUR', 'Pesate', 'Peso pesata g', 'Palline prodotte', 'Scarto palline']];
+  state.orders.forEach((o) => { orderItems(o).forEach((it) => { const kg = num(it.palline) * num(it.pesoPallina) / 1000; const sc = itemScarto(it); rows.push([o.clientName, fmt(num(it.palline)), fmt(num(it.pesoPallina)), fmt(kg, 2), fmt(num(o.prezzoKg), 2), fmt(kg * num(o.prezzoKg), 2), roundedPesate(it), fmt(num(it.pesoPallina) * perCycle()), fmt(itemProducedPalline(it)), (sc > 0 ? '+' : '') + fmt(sc)]); }); });
   // prodotti
   const anyProd = state.orders.some((o) => orderProducts(o).length);
   if (anyProd) {
@@ -1222,10 +1243,21 @@ function runTests() {
   // multi-ordine
   const before = state.orders; state.orders = [{ palline: 100, pesoPallina: 90, prezzoKg: 4.5 }, { palline: 200, pesoPallina: 50, prezzoKg: 5 }, { palline: 37, pesoPallina: 40, prezzoKg: 3.8 }];
   const t = dayTotals();
-  ok('multi palline', t.palline, 337); ok('multi dough g', t.doughG, 9000 + 10000 + 1480);
-  ok('multi farina ceil(20480/1590)=13', t.farinaKg, 13);
-  ok('multi incasso', Math.round(t.incasso * 100) / 100, Math.round((40.5 + 50 + 1480 / 1000 * 3.8) * 100) / 100);
+  ok('multi palline richieste', t.palline, 337);
+  // impasto su pesate arrotondate: 100->3(111), 200->5(185), 37->1(37)
+  ok('multi dough prodotto g', t.doughG, 111 * 90 + 185 * 50 + 37 * 40);
+  ok('multi farina ceil(20720/1590)=14', t.farinaKg, 14);
+  ok('multi incasso (su richiesto)', Math.round(t.incasso * 100) / 100, Math.round((40.5 + 50 + 1480 / 1000 * 3.8) * 100) / 100);
   ok('pesata 50g', 50 * perCycle(), 1850); ok('pesata 40g', 40 * perCycle(), 1480);
+  // ARROTONDAMENTO PESATE (per=37, metà=18,5)
+  ok('round 116->3 (giù, r5)', roundedPesate({ palline: 116, pesoPallina: 90 }), 3);
+  ok('scarto 116 = -5', itemScarto({ palline: 116, pesoPallina: 90 }), -5);
+  ok('round 130->4 (su, r19)', roundedPesate({ palline: 130, pesoPallina: 90 }), 4);
+  ok('scarto 130 = +18', itemScarto({ palline: 130, pesoPallina: 90 }), 18);
+  ok('round 74->2 (esatto)', roundedPesate({ palline: 74, pesoPallina: 90 }), 2);
+  ok('scarto 74 = 0', itemScarto({ palline: 74, pesoPallina: 90 }), 0);
+  ok('round 55->1 (giù, r18)', roundedPesate({ palline: 55, pesoPallina: 90 }), 1);
+  ok('round 56->2 (su, r19)', roundedPesate({ palline: 56, pesoPallina: 90 }), 2);
   // ordine multi-riga (stesso cliente, pesi diversi)
   const ml = { clientName: 'X', prezzoKg: 4, items: [{ palline: 100, pesoPallina: 90 }, { palline: 50, pesoPallina: 50 }] };
   ok('multiriga palline', orderPalline(ml), 150);
@@ -1295,17 +1327,13 @@ function sharePesate(per, w, pall) {
   if (residuo > 0) arr.push({ label: 'Pesata finale', palline: residuo, grams: w * residuo, final: true });
   return arr;
 }
-function shareSpec(per, w, pall) {
-  const complete = Math.floor(pall / per), residuo = pall % per, parts = [];
-  if (complete > 0) parts.push(complete + (complete === 1 ? ' pesata da ' : ' pesate da ') + fmt(w * per) + ' g');
-  if (residuo > 0) parts.push(residuo + (residuo === 1 ? ' pallina' : ' palline'));
-  return parts.length ? parts.join(' + ') : '—';
-}
+function shareRoundedPesate(per, pall) { if (pall <= 0) return 0; const q = Math.floor(pall / per), r = pall - q * per; return (r * 2 > per) ? q + 1 : q; }
+function shareSpec(per, w, pall) { const pesate = shareRoundedPesate(per, pall); if (pesate <= 0) return '0 pesate (da scorta)'; return pesate + (pesate === 1 ? ' pesata da ' : ' pesate da ') + fmt(w * per) + ' g'; }
 function renderShare(p) {
   // compatibilità: payload vecchio (ig/lv) -> singolo impasto Pane
   const imps = (p.imp && p.imp.length) ? p.imp : [{ n: 'Pane', lv: p.lv || 0, ig: p.ig || (p.rc ? [{ n: 'Farina', g: p.rc.farina }, { n: 'Fecola', g: p.rc.fecola }, { n: 'Acqua', g: p.rc.acqua }, { n: 'Sale', g: p.rc.sale }, { n: 'Olio', g: p.rc.olio }] : []), kg: null }];
   let doughMainG = 0, totPall = 0;
-  p.o.forEach((o) => (o.it || []).forEach((it) => { doughMainG += it.p * it.w; totPall += it.p; }));
+  p.o.forEach((o) => (o.it || []).forEach((it) => { doughMainG += shareRoundedPesate(p.pc, it.p) * p.pc * it.w; totPall += it.p; }));
   const mainDpk = (imps[0].ig || []).reduce((s, i) => s + i.g, 0) || 1;
   const farinaMain = Math.ceil(doughMainG / mainDpk - 1e-9);
   const dosiHtml = imps.map((im, idx) => {
@@ -1316,7 +1344,7 @@ function renderShare(p) {
   }).join('');
   const prodHtml = p.o.map((o) => {
     const its = o.it || [], prs = o.pr || [];
-    const blocks = its.map((it) => `<div class="prod-item"><div class="prod-spec">🔪 ${shareSpec(p.pc, it.w, it.p)}</div><div class="prod-sub">⚪ ${fmt(it.p)} palline da ${fmt(it.w)} g</div></div>`).join('');
+    const blocks = its.map((it) => { const prod = shareRoundedPesate(p.pc, it.p) * p.pc, s = prod - it.p, sc = s === 0 ? '' : `<span class="scarto ${s > 0 ? 'pos' : 'neg'}">${scartoText(s)}</span>`; return `<div class="prod-item"><div class="prod-spec">🔪 ${shareSpec(p.pc, it.w, it.p)} ${sc}</div><div class="prod-sub">⚪ ${fmt(it.p)} richieste → ${fmt(prod)} prodotte · ${fmt(it.w)} g/pallina</div></div>`; }).join('');
     const prodLines = prs.map((pr) => `<div class="prod-item"><div class="prod-spec prod-spec-b">🥐 ${fmt(pr.q)} × ${escapeHtml(pr.n)}</div><div class="prod-sub">${fmt(pr.w)} g a pezzo</div></div>`).join('');
     const head = its.length ? `${fmt(its.reduce((s, it) => s + it.p, 0))} palline` : `${fmt(prs.reduce((s, x) => s + x.q, 0))} pezzi`;
     return `<div class="prod-client"><div class="prod-head"><div><div class="pn">${escapeHtml(o.n)}</div><div class="pp">${head}</div></div></div><div class="prod-body">${blocks}${prodLines}</div></div>`;

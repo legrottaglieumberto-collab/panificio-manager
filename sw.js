@@ -1,4 +1,4 @@
-const CACHE = 'panificio-v9';
+const CACHE = 'panificio-v10';
 const ASSETS = [
   './',
   './index.html',
