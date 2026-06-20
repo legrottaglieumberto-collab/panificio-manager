@@ -181,6 +181,23 @@
   .collab-bar{position:fixed;left:0;right:0;bottom:calc(var(--nav-h) + var(--safe-bottom));max-width:560px;margin:0 auto;z-index:35;display:none;align-items:center;gap:10px;padding:10px 16px;background:color-mix(in srgb,var(--blue) 16%,var(--bg-elev));border-top:.5px solid var(--sep);font-size:13px;font-weight:600;color:var(--blue);}
   body.collab .collab-bar{display:flex;}
   .collab-bar button{margin-left:auto;color:var(--text-2);font-weight:700;background:var(--card-2);padding:7px 12px;border-radius:10px;}
+  /* Riquadri clienti (schermata principale) */
+  .riscuoti{display:flex;gap:10px;margin-bottom:12px;}
+  .riscuoti .rb{flex:1;background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:11px 14px;}
+  .riscuoti .rb .rl{font-size:12px;color:var(--text-2);font-weight:700;text-transform:uppercase;}
+  .riscuoti .rb .rv{font-size:20px;font-weight:800;margin-top:2px;}
+  .riscuoti .rb.due .rv{color:var(--accent);} .riscuoti .rb.paid .rv{color:var(--green);}
+  .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .cbox{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:14px;position:relative;cursor:pointer;transition:transform .08s,background .15s;overflow:hidden;}
+  .cbox:active{transform:scale(.97);}
+  .cbox .cn{font-weight:800;font-size:17px;padding-right:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cbox .cp{font-weight:800;font-size:20px;margin-top:6px;letter-spacing:-.5px;}
+  .cbox .cs{font-size:12px;color:var(--text-2);font-weight:600;margin-top:2px;}
+  .cbox .tick{position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;border:2px solid var(--sep);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;}
+  .cbox.paid{background:color-mix(in srgb,var(--green) 18%,var(--card));}
+  .cbox.paid .cp{color:var(--green);text-decoration:line-through;}
+  .cbox.paid .tick{background:var(--green);border-color:var(--green);}
+  .cbox.paid .cs{color:var(--green);}
   datalist{color:#000;}
 </style>
 </head>
@@ -188,7 +205,7 @@
 <div class="app">
   <div class="topbar">
     <div>
-      <h1 id="topTitle">Oggi</h1>
+      <h1 id="topTitle">Nuovo ordine</h1>
       <div class="sub" id="topSub"></div>
     </div>
     <div class="tb-actions">
@@ -197,35 +214,37 @@
     </div>
   </div>
 
-  <!-- DASHBOARD -->
+  <!-- DASHBOARD / NUOVO ORDINE -->
   <section class="view active" id="view-dash">
-    <div class="grid" id="statsGrid"></div>
-    <div class="section-title owner-only">Andamento</div>
-    <div class="mini3 owner-only" id="trendRow"></div>
-    <div class="section-title">Ingredienti da preparare</div>
-    <div class="card" id="ingCard"></div>
-    <div id="prodottiSection"></div>
-    <div class="section-title owner-only">Condividi con i collaboratori</div>
-    <div class="btn-row owner-only" style="margin-top:0">
-      <button class="btn blue small" onclick="shareProduzione()">📤 Link rapido</button>
-      <button class="btn green small" onclick="shareLive()">🟢 Tempo reale</button>
+    <button class="btn owner-only" onclick="openOrder()" style="margin-bottom:14px">➕ Nuovo ordine</button>
+    <div class="riscuoti" id="riscuotiLine"></div>
+    <div class="cgrid" id="clientBoxes"></div>
+
+    <div class="section-title">🏭 Produzione interna</div>
+    <div class="card">
+      <div class="set-row" style="border:none;padding:4px 0">
+        <div><div class="sl">Kg di farina per il negozio</div><div class="sd">impasto extra (panzerotti, ecc.)</div></div>
+        <div style="display:flex;align-items:center;gap:6px"><input id="internalFarina" inputmode="decimal" placeholder="0" oninput="setInternalFarina(this.value)" /><span class="sd">kg</span></div>
+      </div>
     </div>
+
+    <div class="section-title">🧾 Ricetta finale del giorno</div>
+    <div class="card" id="finalRecipe"></div>
+    <div id="prodottiSection"></div>
+
     <div class="section-title owner-only">Azioni</div>
-    <button class="btn owner-only" onclick="openOrder()">➕ Nuovo ordine</button>
+    <div class="btn-row owner-only" style="margin-top:0">
+      <button class="btn blue small" onclick="shareProduzione()">📤 Condividi</button>
+      <button class="btn green small" onclick="saveDay()">💾 Salva giornata</button>
+    </div>
     <div class="btn-row owner-only">
       <button class="btn secondary small" onclick="exportPDF()">🖨️ PDF</button>
       <button class="btn secondary small" onclick="exportCSV('day')">📊 CSV</button>
     </div>
     <div class="btn-row owner-only">
-      <button class="btn green small" onclick="saveDay()">💾 Salva giornata</button>
       <button class="btn ghost small" onclick="openInverse()">🔄 Quanto produco?</button>
-    </div>
-    <div class="btn-row owner-only">
       <button class="btn ghost small" onclick="clearDay()">🧹 Svuota giornata</button>
-      <button class="btn ghost small" onclick="go('settings')">⚙️ Impostazioni</button>
     </div>
-    <div class="section-title owner-only">Ricetta base · per kg di farina</div>
-    <div class="card owner-only"><div class="recipe-grid" id="recipeGrid"></div></div>
   </section>
 
   <!-- ORDINI -->
@@ -394,7 +413,7 @@ const DEFAULT_RECIPE = { farina: 1000, fecola: 10, acqua: 500, sale: 30, olio: 5
 function defaultIngredients() { return [{ name: 'Farina', g: 1000, base: true }, { name: 'Fecola', g: 10 }, { name: 'Acqua', g: 500 }, { name: 'Sale', g: 30 }, { name: 'Olio', g: 50 }]; }
 function defaultImpasti() { return [{ id: 'main', name: 'Pane', ingredients: defaultIngredients(), lievitoPerKg: 3 }]; }
 const DEFAULT_SETTINGS = { impasti: defaultImpasti(), perCycle: 37, theme: 'auto', sync: { url: '', key: '', workspace: '' } };
-const DEFAULT_STATE = { orders: [], clients: {}, history: [], products: [], impastiKg: {}, settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), backups: [], lastBackup: '', updatedAt: new Date().toISOString() };
+const DEFAULT_STATE = { orders: [], clients: {}, history: [], products: [], impastiKg: {}, internalFarina: 0, settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), backups: [], lastBackup: '', updatedAt: new Date().toISOString() };
 
 let state = load();
 let editingId = null, currentClient = null;
@@ -428,6 +447,7 @@ function load() {
       delete merged.settings.ingredients; delete merged.settings.lievitoPerKg; delete merged.settings.recipe;
       if (!Array.isArray(merged.products)) merged.products = [];
       if (!merged.impastiKg || typeof merged.impastiKg !== 'object') merged.impastiKg = {};
+      if (typeof merged.internalFarina !== 'number') merged.internalFarina = num(merged.internalFarina) || 0;
       normalizeOrders(merged.orders);
       return merged;
     }
@@ -569,9 +589,13 @@ function dayTotals() {
   }
   t.scarto = t.producedPalline - t.palline;
   t.incasso = t.pallineIncasso + t.prodottiIncasso;
-  t.clienti = names.size; t.kg = t.doughG / 1000; t.requestedKg = t.requestedG / 1000;
+  t.clienti = names.size; t.requestedKg = t.requestedG / 1000;
   t.prezzoMedio = t.requestedKg > 0 ? t.pallineIncasso / t.requestedKg : 0;
-  t.farinaKg = safeCeil(t.doughG / doughPerKg());
+  // farina ordini (da pesate arrotondate) + produzione interna (kg farina) = farina TOTALE impasto principale
+  t.ordersFarinaKg = safeCeil(t.doughG / doughPerKg());
+  t.internalFarina = Math.max(0, num(state.internalFarina));
+  t.farinaKg = t.ordersFarinaKg + t.internalFarina;
+  t.kg = t.farinaKg * doughPerKg() / 1000; // peso impasto totale (ordini + interno)
   t.ingredients = ingredientsFor(t.farinaKg); t.lievito = t.farinaKg * lievitoDefault();
   return t;
 }
@@ -582,29 +606,41 @@ function render() {
   renderDash(); renderOrders(); renderProd(); renderArchive(); renderHistory(); renderDatalist(); renderSettings();
   $('prodPerCycle').textContent = perCycle();
 }
+function boxSub(o) {
+  const bits = [];
+  if (orderItems(o).length) bits.push(fmt(orderPalline(o)) + ' pall');
+  const npz = orderProducts(o).reduce((s, p) => s + num(p.qty), 0); if (npz) bits.push(fmt(npz) + ' pz');
+  return bits.join(' · ') || '—';
+}
+function togglePaid(id) { const o = state.orders.find((x) => x.id === id); if (!o) return; o.paid = !o.paid; save(); renderDash(); renderOrders(); }
+function setInternalFarina(v) { state.internalFarina = Math.max(0, num(v)); save(); renderFinalRecipe(dayTotals()); }
+function renderFinalRecipe(t) {
+  const rows = t.ingredients.map((x) => `<div class="irow"><div class="l"><span class="e">${x.emoji}</span>${escapeHtml(x.name)}</div><div class="v">${gOrKg(x.grams)}</div></div>`).join('');
+  const breakdown = t.internalFarina > 0 ? `ordini ${fmt(t.ordersFarinaKg)} kg + negozio ${fmt(t.internalFarina)} kg` : `da ${fmt(t.ordersFarinaKg)} kg di farina`;
+  $('finalRecipe').innerHTML = (t.farinaKg > 0)
+    ? `<div class="irow" style="border-bottom:1px solid var(--sep)"><div class="l">🌾 Farina totale</div><div class="v">${fmt(t.farinaKg)} kg</div></div><div class="sd" style="margin:6px 2px 4px">${breakdown}</div>${rows}<div class="irow total"><div class="l">🧫 Lievito (${fmt(lievitoDefault())} g/kg)</div><div class="v">${fmt(t.lievito, 0)} g</div></div>`
+    : '<div class="empty" style="padding:24px"><div class="big">🌾</div>Aggiungi ordini o kg di produzione interna</div>';
+}
 function renderDash() {
   const t = dayTotals();
   const today = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
   $('topSub').textContent = today.charAt(0).toUpperCase() + today.slice(1);
-  $('statsGrid').innerHTML = `
-    ${stat('📦', 'Ordini del giorno', state.orders.length, '')}
-    ${stat('👥', 'Clienti', t.clienti, '')}
-    ${stat('⚪', 'Totale palline', fmt(t.palline), '')}
-    ${stat('⚖️', 'Peso impasto', fmt(t.kg, t.kg % 1 === 0 ? 0 : 1), 'kg')}
-    ${stat('🌾', 'Farina necessaria', fmt(t.farinaKg), 'kg')}
-    ${statAccent('💶', 'Incasso previsto', money(t.incasso), t.kg > 0 ? 'Media ' + money(t.prezzoMedio) + '/kg · 🧫 ' + fmt(t.lievito) + ' g lievito' + (t.scarto !== 0 ? ' · scarto ' + scartoText(t.scarto) : '') : '')}`;
-  renderTrend();
-  const ingRows = t.ingredients.map((x) => `<div class="irow"><div class="l"><span class="e">${x.emoji}</span>${escapeHtml(x.name)}</div><div class="v">${gOrKg(x.grams)}</div></div>`).join('');
-  $('ingCard').innerHTML = ingRows + `
-    <div class="lievito-box owner-only"><span class="e" style="font-size:19px">🧫</span><div style="flex:1"><div style="font-weight:700">Lievito</div><div style="font-size:13px;color:var(--text-2)">grammi per kg di farina</div></div><input id="lievInput" inputmode="decimal" value="${inp(lievitoDefault())}" /></div>
-    <div class="irow total"><div class="l">🧫 Lievito totale (${fmt(t.farinaKg)} kg × ${fmt(lievitoDefault())} g)</div><div class="v">${fmt(t.lievito, 0)} g</div></div>`;
-  const li = $('lievInput'); li.addEventListener('change', () => { state.settings.lievitoPerKg = num(li.value); save(); render(); });
+  // riepilogo incassi
+  const daRiscuotere = state.orders.filter((o) => !o.paid).reduce((s, o) => s + orderTotal(o), 0);
+  const incassato = state.orders.filter((o) => o.paid).reduce((s, o) => s + orderTotal(o), 0);
+  $('riscuotiLine').innerHTML = state.orders.length ? `
+    <div class="rb due"><div class="rl">Da riscuotere</div><div class="rv">${money(daRiscuotere)}</div></div>
+    <div class="rb paid"><div class="rl">Incassato</div><div class="rv">${money(incassato)}</div></div>` : '';
+  // riquadri clienti
+  $('clientBoxes').innerHTML = state.orders.length
+    ? state.orders.map((o) => `<div class="cbox ${o.paid ? 'paid' : ''}" onclick="togglePaid('${o.id}')"><div class="tick">${o.paid ? '✓' : ''}</div><div class="cn">${escapeHtml(o.clientName)}</div><div class="cp">${money(orderTotal(o))}</div><div class="cs">${o.paid ? 'Pagato' : boxSub(o)}</div></div>`).join('')
+    : `<div style="grid-column:1/-1">${emptyState('📦', 'Nessun ordine', 'Tocca “Nuovo ordine” per iniziare.')}</div>`;
+  // produzione interna + ricetta finale
+  $('internalFarina').value = t.internalFarina ? inp(t.internalFarina) : '';
+  renderFinalRecipe(t);
   // prodotti del giorno
   const plist = Object.values(t.products);
   $('prodottiSection').innerHTML = plist.length ? `<div class="section-title">🥐 Prodotti del giorno</div><div class="card">${plist.map((p) => `<div class="irow"><div class="l">${escapeHtml(p.name)}</div><div class="v">${fmt(p.qty)} pz</div></div>`).join('')}<div class="irow total"><div class="l">💶 Incasso prodotti</div><div class="v">${money(t.prodottiIncasso)}</div></div></div>` : '';
-  // ricetta card
-  $('recipeGrid').innerHTML = ingr().map((i) => `<div class="ri"><div class="rn">${emojiFor(i.name)} ${escapeHtml(i.name)}</div><div class="rv">${fmt(num(i.g))} g</div></div>`).join('') +
-    `<div class="ri"><div class="rn">🧫 Lievito</div><div class="rv">${fmt(lievitoDefault())} g/kg</div></div>`;
 }
 function stat(e, l, v, u) { return `<div class="stat"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}${u ? ' <small>' + u + '</small>' : ''}</div></div>`; }
 function statAccent(e, l, v, s) { return `<div class="stat accent wide owner-only" id="incassoCard"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}</div>${s ? '<div class="label" style="margin-top:4px">' + s + '</div>' : ''}</div>`; }
@@ -641,7 +677,7 @@ function renderOrders() {
     const sub = hasP ? `${fmt(orderPalline(o))} pall · ${fmt(orderKg(o), 2)} kg` : `${fmt(orderProducts(o).reduce((s, p) => s + num(p.qty), 0))} pezzi`;
     return `<div class="order tap" onclick="openOrder('${o.id}')">
       <div class="ava">${initials(o.clientName)}</div>
-      <div class="info"><div class="name">${escapeHtml(o.clientName)}</div><div class="meta">${meta}</div></div>
+      <div class="info"><div class="name">${escapeHtml(o.clientName)} ${o.paid ? '<span class="badge on" style="font-size:11px">✓ pagato</span>' : ''}</div><div class="meta">${meta}</div></div>
       <div class="amt">${money(orderTotal(o))}<small>${sub}</small></div>
     </div>`;
   }).join('');
@@ -964,9 +1000,9 @@ function calcInverse() {
 
 /* ============================ SALVA / SVUOTA GIORNATA ============================ */
 function saveDay() {
-  if (!state.orders.length) { toast('Nessun ordine da salvare'); return; }
+  if (!state.orders.length && !num(state.internalFarina)) { toast('Niente da salvare'); return; }
   const t = dayTotals();
-  const entry = { id: uid(), date: new Date().toISOString(), clienti: t.clienti, palline: t.palline, kg: t.kg, farinaKg: t.farinaKg, lievito: t.lievito, lievitoPerKg: lievitoDefault(), incasso: t.incasso, prodottiIncasso: t.prodottiIncasso, ingredients: t.ingredients, prodotti: Object.values(t.products), orders: state.orders.map((o) => ({ clientName: o.clientName, prezzoKg: o.prezzoKg, palline: orderPalline(o), kg: orderKg(o), totale: orderTotal(o), items: orderItems(o).map((it) => ({ palline: num(it.palline), pesoPallina: num(it.pesoPallina) })), products: orderProducts(o).map((p) => ({ name: p.name, qty: num(p.qty), peso: num(p.peso), prezzo: num(p.prezzo), mode: p.mode })) })) };
+  const entry = { id: uid(), date: new Date().toISOString(), clienti: t.clienti, palline: t.palline, kg: t.kg, farinaKg: t.farinaKg, internalFarina: t.internalFarina, lievito: t.lievito, lievitoPerKg: lievitoDefault(), incasso: t.incasso, prodottiIncasso: t.prodottiIncasso, ingredients: t.ingredients, prodotti: Object.values(t.products), orders: state.orders.map((o) => ({ clientName: o.clientName, prezzoKg: o.prezzoKg, palline: orderPalline(o), kg: orderKg(o), totale: orderTotal(o), items: orderItems(o).map((it) => ({ palline: num(it.palline), pesoPallina: num(it.pesoPallina) })), products: orderProducts(o).map((p) => ({ name: p.name, qty: num(p.qty), peso: num(p.peso), prezzo: num(p.prezzo), mode: p.mode })) })) };
   state.history.push(entry);
   for (const o of state.orders) {
     if (!state.clients[o.clientName]) state.clients[o.clientName] = { prezzoKg: num(o.prezzoKg), history: [] };
@@ -975,8 +1011,8 @@ function saveDay() {
   save(); render(); toast('Giornata salvata nello storico 💾');
 }
 function clearDay() {
-  if (!state.orders.length) { toast('Giornata già vuota'); return; }
-  if (confirm('Svuotare tutti gli ordini di oggi? Lo storico salvato resta intatto.')) { state.orders = []; save(); render(); toast('Giornata svuotata'); }
+  if (!state.orders.length && !num(state.internalFarina)) { toast('Giornata già vuota'); return; }
+  if (confirm('Svuotare gli ordini di oggi e la produzione interna? Lo storico salvato resta intatto.')) { state.orders = []; state.internalFarina = 0; save(); render(); toast('Giornata svuotata'); }
 }
 
 /* ============================ PDF (jsPDF) ============================ */
@@ -1116,7 +1152,7 @@ function autoBackup() {
   if (state.backups.length > 14) state.backups = state.backups.slice(-14);
   state.lastBackup = today; save({ remote: true });
 }
-function serializableState() { return { orders: state.orders, clients: state.clients, history: state.history, products: state.products, impastiKg: state.impastiKg, settings: { impasti: state.settings.impasti, perCycle: state.settings.perCycle } }; }
+function serializableState() { return { orders: state.orders, clients: state.clients, history: state.history, products: state.products, impastiKg: state.impastiKg, internalFarina: state.internalFarina, settings: { impasti: state.settings.impasti, perCycle: state.settings.perCycle } }; }
 function downloadBackup() { downloadFile('Panificio_backup_' + todayKey() + '.json', JSON.stringify(state, null, 2), 'application/json'); toast('Backup scaricato ✓'); }
 $('restoreFile').addEventListener('change', (e) => {
   const f = e.target.files[0]; if (!f) return; const r = new FileReader();
@@ -1127,6 +1163,7 @@ $('restoreFile').addEventListener('change', (e) => {
       if (data.orders) { state.orders = data.orders; normalizeOrders(state.orders); } if (data.clients) state.clients = data.clients; if (data.history) state.history = data.history;
       if (Array.isArray(data.products)) state.products = data.products;
       if (data.impastiKg && typeof data.impastiKg === 'object') state.impastiKg = data.impastiKg;
+      if (data.internalFarina != null) state.internalFarina = num(data.internalFarina);
       if (data.settings) { if (Array.isArray(data.settings.impasti) && data.settings.impasti.length) state.settings.impasti = data.settings.impasti; else if (Array.isArray(data.settings.ingredients) && data.settings.ingredients.length) state.settings.impasti = [{ id: 'main', name: 'Pane', ingredients: data.settings.ingredients, lievitoPerKg: data.settings.lievitoPerKg != null ? data.settings.lievitoPerKg : 3 }]; if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; }
       save(); render(); toast('Dati ripristinati ✓');
     } catch (err) { toast('File non valido'); }
@@ -1161,6 +1198,7 @@ function applyRemote(data, updatedAt) {
   if (data.orders) { state.orders = data.orders; normalizeOrders(state.orders); } if (data.clients) state.clients = data.clients; if (data.history) state.history = data.history;
   if (Array.isArray(data.products)) state.products = data.products;
   if (data.impastiKg && typeof data.impastiKg === 'object') state.impastiKg = data.impastiKg;
+  if (data.internalFarina != null) state.internalFarina = num(data.internalFarina);
   if (data.settings) { if (Array.isArray(data.settings.impasti) && data.settings.impasti.length) state.settings.impasti = data.settings.impasti; else if (Array.isArray(data.settings.ingredients) && data.settings.ingredients.length) state.settings.impasti = [{ id: 'main', name: 'Pane', ingredients: data.settings.ingredients, lievitoPerKg: data.settings.lievitoPerKg != null ? data.settings.lievitoPerKg : 3 }]; if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; }
   state.updatedAt = updatedAt || new Date().toISOString();
   save({ remote: true }); render(); applyingRemote = false;
@@ -1209,7 +1247,7 @@ function disconnectSync() {
 function showSheet(id) { $(id).classList.add('show'); }
 function hideSheet(id) { $(id).classList.remove('show'); }
 document.querySelectorAll('.sheet-backdrop').forEach((b) => b.addEventListener('click', (e) => { if (e.target === b) b.classList.remove('show'); }));
-const TITLES = { dash: 'Oggi', orders: 'Ordini', prod: 'Produzione', archive: 'Clienti', history: 'Storico', settings: 'Impostazioni' };
+const TITLES = { dash: 'Nuovo ordine', orders: 'Ordini', prod: 'Produzione', archive: 'Clienti', history: 'Storico', settings: 'Impostazioni' };
 function go(v) {
   document.querySelectorAll('.view').forEach((s) => s.classList.remove('active'));
   $('view-' + v).classList.add('active');
@@ -1273,7 +1311,15 @@ function runTests() {
   // DOSI IMPASTO
   const im = { name: 'X', ingredients: [{ name: 'Farina', g: 1000, base: true }, { name: 'Acqua', g: 600 }], lievitoPerKg: 5 };
   const dd = impastoDoses(im, 10); ok('impasto farina', dd.ingredients[0].grams, 10000); ok('impasto acqua', dd.ingredients[1].grams, 6000); ok('impasto lievito', dd.lievito, 50);
-  state.orders = before;
+  // PRODUZIONE INTERNA (kg farina aggiunti alla ricetta finale)
+  const oldInt = state.internalFarina;
+  state.orders = [{ palline: 74, pesoPallina: 90 }]; state.internalFarina = 18; // 74 palline = 2 pesate esatte -> 6660 g -> ceil(6660/1590)=5 kg
+  const ti = dayTotals();
+  ok('interna: farina ordini', ti.ordersFarinaKg, 5);
+  ok('interna: farina negozio', ti.internalFarina, 18);
+  ok('interna: farina totale', ti.farinaKg, 23);
+  ok('interna: lievito totale', ti.lievito, 23 * lievitoDefault());
+  state.internalFarina = oldInt; state.orders = before;
   return res;
 }
 
@@ -1288,7 +1334,7 @@ function doShare(title, text, url) {
 }
 // --- Link rapido: snapshot sola lettura, senza prezzi ---
 function sharePayload() {
-  return { v: 3, t: 'prod', date: new Date().toISOString(), pc: perCycle(),
+  return { v: 3, t: 'prod', date: new Date().toISOString(), pc: perCycle(), inf: Math.max(0, num(state.internalFarina)),
     imp: impasti().map((im, idx) => ({ n: im.name, lv: num(im.lievitoPerKg), ig: (im.ingredients || []).map((i) => ({ n: i.name, g: num(i.g) })), kg: idx === 0 ? null : num(state.impastiKg[im.id] || 0) })),
     o: state.orders.map((o) => ({ n: o.clientName, it: orderItems(o).map((it) => ({ p: num(it.palline), w: num(it.pesoPallina) })), pr: orderProducts(o).map((p) => ({ n: p.name, q: num(p.qty), w: num(p.peso) })) })) };
 }
@@ -1335,7 +1381,8 @@ function renderShare(p) {
   let doughMainG = 0, totPall = 0;
   p.o.forEach((o) => (o.it || []).forEach((it) => { doughMainG += shareRoundedPesate(p.pc, it.p) * p.pc * it.w; totPall += it.p; }));
   const mainDpk = (imps[0].ig || []).reduce((s, i) => s + i.g, 0) || 1;
-  const farinaMain = Math.ceil(doughMainG / mainDpk - 1e-9);
+  const internal = num(p.inf || 0);
+  const farinaMain = Math.ceil(doughMainG / mainDpk - 1e-9) + internal;
   const dosiHtml = imps.map((im, idx) => {
     const kg = idx === 0 ? farinaMain : num(im.kg || 0);
     const rows = (im.ig || []).map((i) => `<div class="irow"><div class="l"><span class="e">${emojiFor(i.n)}</span>${escapeHtml(i.n)}</div><div class="v">${gOrKg(i.g * kg)}</div></div>`).join('');
