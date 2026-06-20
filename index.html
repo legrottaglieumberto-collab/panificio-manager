@@ -217,34 +217,9 @@
   <!-- DASHBOARD / NUOVO ORDINE -->
   <section class="view active" id="view-dash">
     <button class="btn owner-only" onclick="openOrder()" style="margin-bottom:14px">➕ Nuovo ordine</button>
-    <div class="riscuoti" id="riscuotiLine"></div>
     <div class="cgrid" id="clientBoxes"></div>
-
-    <div class="section-title">🏭 Produzione interna</div>
-    <div class="card">
-      <div class="set-row" style="border:none;padding:4px 0">
-        <div><div class="sl">Kg di farina per il negozio</div><div class="sd">impasto extra (panzerotti, ecc.)</div></div>
-        <div style="display:flex;align-items:center;gap:6px"><input id="internalFarina" inputmode="decimal" placeholder="0" oninput="setInternalFarina(this.value)" /><span class="sd">kg</span></div>
-      </div>
-    </div>
-
-    <div class="section-title">🧾 Ricetta finale del giorno</div>
-    <div class="card" id="finalRecipe"></div>
-    <div id="prodottiSection"></div>
-
-    <div class="section-title owner-only">Azioni</div>
-    <div class="btn-row owner-only" style="margin-top:0">
-      <button class="btn blue small" onclick="shareProduzione()">📤 Condividi</button>
-      <button class="btn green small" onclick="saveDay()">💾 Salva giornata</button>
-    </div>
-    <div class="btn-row owner-only">
-      <button class="btn secondary small" onclick="exportPDF()">🖨️ PDF</button>
-      <button class="btn secondary small" onclick="exportCSV('day')">📊 CSV</button>
-    </div>
-    <div class="btn-row owner-only">
-      <button class="btn ghost small" onclick="openInverse()">🔄 Quanto produco?</button>
-      <button class="btn ghost small" onclick="clearDay()">🧹 Svuota giornata</button>
-    </div>
+    <button class="btn blue" onclick="go('prod')" style="margin-top:18px">🔪 Produzione · ricetta e pesate</button>
+    <button class="btn secondary owner-only" onclick="go('history')" style="margin-top:12px">📅 Storico ordini</button>
   </section>
 
   <!-- ORDINI -->
@@ -264,6 +239,13 @@
     <div id="dosiImpasti"></div>
     <div class="section-title" style="margin-left:0">📋 Per cliente</div>
     <div id="prodList"></div>
+    <div id="prodottiSection"></div>
+    <div class="section-title owner-only">Esporta</div>
+    <div class="btn-row owner-only" style="margin-top:0">
+      <button class="btn secondary small" onclick="exportPDF()">🖨️ PDF</button>
+      <button class="btn secondary small" onclick="exportCSV('day')">📊 CSV</button>
+    </div>
+    <button class="btn ghost small owner-only" style="margin-top:10px" onclick="openInverse()">🔄 Quanto posso produrre?</button>
   </section>
 
   <!-- ARCHIVIO -->
@@ -274,6 +256,13 @@
 
   <!-- STORICO -->
   <section class="view" id="view-history">
+    <div class="section-title" style="margin-left:0">Oggi</div>
+    <div class="card" id="todaySummary"></div>
+    <div class="btn-row owner-only" style="margin-top:0">
+      <button class="btn green small" onclick="saveDay()">💾 Salva giornata</button>
+      <button class="btn ghost small" onclick="clearDay()">🧹 Svuota giornata</button>
+    </div>
+    <div class="section-title" style="margin-left:0">Giornate passate</div>
     <div class="seg" id="histSeg">
       <button data-f="day" class="on">Giorno</button>
       <button data-f="week">Settimana</button>
@@ -281,7 +270,7 @@
       <button data-f="year">Anno</button>
     </div>
     <div class="card" id="histSummary"></div>
-    <div class="btn-row" style="margin:0 0 14px">
+    <div class="btn-row owner-only" style="margin:0 0 14px">
       <button class="btn secondary small" onclick="exportCSV('history')">📊 Esporta storico CSV</button>
       <button class="btn secondary small" onclick="exportHistoryPDF()">🖨️ Storico PDF</button>
     </div>
@@ -398,6 +387,15 @@
     <div class="section-title" style="margin-left:0">Storico ordini</div>
     <div id="clientHistory"></div>
     <div class="del-link" onclick="deleteClient()">Elimina cliente dall'archivio</div>
+  </div>
+</div>
+
+<!-- HISTORY DAY SHEET -->
+<div class="sheet-backdrop" id="histSheet">
+  <div class="sheet">
+    <div class="grab"></div>
+    <h2 id="histDayTitle">Giornata</h2>
+    <div id="histDayBody"></div>
   </div>
 </div>
 
@@ -612,7 +610,7 @@ function boxSub(o) {
   const npz = orderProducts(o).reduce((s, p) => s + num(p.qty), 0); if (npz) bits.push(fmt(npz) + ' pz');
   return bits.join(' · ') || '—';
 }
-function togglePaid(id) { const o = state.orders.find((x) => x.id === id); if (!o) return; o.paid = !o.paid; save(); renderDash(); renderOrders(); }
+function togglePaid(id) { const o = state.orders.find((x) => x.id === id); if (!o) return; o.paid = !o.paid; save(); renderDash(); renderOrders(); renderHistory(); }
 function setInternalFarina(v) { state.internalFarina = Math.max(0, num(v)); save(); renderFinalRecipe(dayTotals()); }
 function renderFinalRecipe(t) {
   const rows = t.ingredients.map((x) => `<div class="irow"><div class="l"><span class="e">${x.emoji}</span>${escapeHtml(x.name)}</div><div class="v">${gOrKg(x.grams)}</div></div>`).join('');
@@ -622,25 +620,11 @@ function renderFinalRecipe(t) {
     : '<div class="empty" style="padding:24px"><div class="big">🌾</div>Aggiungi ordini o kg di produzione interna</div>';
 }
 function renderDash() {
-  const t = dayTotals();
   const today = new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
   $('topSub').textContent = today.charAt(0).toUpperCase() + today.slice(1);
-  // riepilogo incassi
-  const daRiscuotere = state.orders.filter((o) => !o.paid).reduce((s, o) => s + orderTotal(o), 0);
-  const incassato = state.orders.filter((o) => o.paid).reduce((s, o) => s + orderTotal(o), 0);
-  $('riscuotiLine').innerHTML = state.orders.length ? `
-    <div class="rb due"><div class="rl">Da riscuotere</div><div class="rv">${money(daRiscuotere)}</div></div>
-    <div class="rb paid"><div class="rl">Incassato</div><div class="rv">${money(incassato)}</div></div>` : '';
-  // riquadri clienti
   $('clientBoxes').innerHTML = state.orders.length
     ? state.orders.map((o) => `<div class="cbox ${o.paid ? 'paid' : ''}" onclick="togglePaid('${o.id}')"><div class="tick">${o.paid ? '✓' : ''}</div><div class="cn">${escapeHtml(o.clientName)}</div><div class="cp">${money(orderTotal(o))}</div><div class="cs">${o.paid ? 'Pagato' : boxSub(o)}</div></div>`).join('')
     : `<div style="grid-column:1/-1">${emptyState('📦', 'Nessun ordine', 'Tocca “Nuovo ordine” per iniziare.')}</div>`;
-  // produzione interna + ricetta finale
-  $('internalFarina').value = t.internalFarina ? inp(t.internalFarina) : '';
-  renderFinalRecipe(t);
-  // prodotti del giorno
-  const plist = Object.values(t.products);
-  $('prodottiSection').innerHTML = plist.length ? `<div class="section-title">🥐 Prodotti del giorno</div><div class="card">${plist.map((p) => `<div class="irow"><div class="l">${escapeHtml(p.name)}</div><div class="v">${fmt(p.qty)} pz</div></div>`).join('')}<div class="irow total"><div class="l">💶 Incasso prodotti</div><div class="v">${money(t.prodottiIncasso)}</div></div></div>` : '';
 }
 function stat(e, l, v, u) { return `<div class="stat"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}${u ? ' <small>' + u + '</small>' : ''}</div></div>`; }
 function statAccent(e, l, v, s) { return `<div class="stat accent wide owner-only" id="incassoCard"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}</div>${s ? '<div class="label" style="margin-top:4px">' + s + '</div>' : ''}</div>`; }
@@ -685,6 +669,9 @@ function renderOrders() {
 
 function renderProd() {
   renderDosiImpasti($('dosiImpasti'), state.settings.role !== 'collab');
+  // prodotti del giorno (riepilogo)
+  const ps = $('prodottiSection');
+  if (ps) { const plist = Object.values(dayTotals().products); ps.innerHTML = plist.length ? `<div class="section-title">🥐 Prodotti del giorno</div><div class="card">${plist.map((p) => `<div class="irow"><div class="l">${escapeHtml(p.name)}</div><div class="v">${fmt(p.qty)} pz</div></div>`).join('')}</div>` : ''; }
   const el = $('prodList');
   if (!state.orders.length) { el.innerHTML = emptyState('🔪', 'Niente da produrre', 'Aggiungi ordini per vedere le pesate.'); return; }
   const sorted = [...state.orders].sort((a, b) => orderMaxPeso(b) - orderMaxPeso(a) || orderPalline(b) - orderPalline(a));
@@ -755,6 +742,20 @@ function inRange(dateStr, filter) {
   return true;
 }
 function renderHistory() {
+  // riepilogo "Oggi" (live)
+  const ts = $('todaySummary');
+  if (ts) {
+    if (state.orders.length) {
+      const t = dayTotals();
+      const daRiscuotere = state.orders.filter((o) => !o.paid).reduce((s, o) => s + orderTotal(o), 0);
+      const incassato = state.orders.filter((o) => o.paid).reduce((s, o) => s + orderTotal(o), 0);
+      ts.innerHTML = `
+        <div class="irow"><div class="l">👥 Clienti · ⚪ palline</div><div class="v">${t.clienti} · ${fmt(t.palline)}</div></div>
+        <div class="irow"><div class="l">🌾 Farina · 🧫 lievito</div><div class="v">${fmt(t.farinaKg)} kg · ${fmt(t.lievito)} g</div></div>
+        <div class="irow"><div class="l">💶 Da riscuotere</div><div class="v" style="color:var(--accent)">${money(daRiscuotere)}</div></div>
+        <div class="irow total"><div class="l">✅ Incassato</div><div class="v" style="color:var(--green)">${money(incassato)}</div></div>`;
+    } else ts.innerHTML = '<div class="note" style="margin:6px 0">Nessun ordine oggi.</div>';
+  }
   const el = $('histList');
   if (!state.history.length) { el.innerHTML = emptyState('📅', 'Nessuno storico', 'Salva una giornata per archiviarla qui.'); $('histSummary').style.display = 'none'; return; }
   const items = state.history.filter((h) => inRange(h.date, histFilter)).sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -767,8 +768,27 @@ function renderHistory() {
   if (!items.length) { el.innerHTML = emptyState('🔍', 'Nessun dato', 'Nessuna giornata in questo periodo.'); return; }
   el.innerHTML = items.map((h) => {
     const d = new Date(h.date);
-    return `<div class="hist"><div class="d"><div class="day">${d.getDate()}</div><div class="mon">${d.toLocaleDateString('it-IT', { month: 'short' })}</div></div><div class="hi"><div class="t">${h.clienti} clienti · ${fmt(h.palline)} palline</div><div class="s">${fmt(h.kg, 1)} kg · ${fmt(h.farinaKg)} kg farina · ${fmt(h.lievito)} g lievito</div></div><div class="he">${money(h.incasso)}</div></div>`;
+    return `<div class="hist tap" onclick="openHistoryDay('${h.id}')"><div class="d"><div class="day">${d.getDate()}</div><div class="mon">${d.toLocaleDateString('it-IT', { month: 'short' })}</div></div><div class="hi"><div class="t">${h.clienti} clienti · ${fmt(h.palline)} palline</div><div class="s">${fmt(h.kg, 1)} kg · ${fmt(h.farinaKg)} kg farina · ${fmt(h.lievito)} g lievito</div></div><div class="he">${money(h.incasso)} ›</div></div>`;
   }).join('');
+}
+function openHistoryDay(id) {
+  const h = state.history.find((x) => x.id === id); if (!h) return;
+  const d = new Date(h.date);
+  $('histDayTitle').textContent = cap(d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }));
+  const ordersHtml = (h.orders || []).map((o) => {
+    const parts = [];
+    (o.items || []).forEach((it) => parts.push(fmt(num(it.palline)) + '×' + fmt(num(it.pesoPallina)) + 'g'));
+    (o.products || []).forEach((p) => parts.push(fmt(num(p.qty)) + '× ' + p.name));
+    return `<div class="order"><div class="ava">${initials(o.clientName)}</div><div class="info"><div class="name">${escapeHtml(o.clientName)}</div><div class="meta">${escapeHtml(parts.join(' · ') || '—')}</div></div><div class="amt">${money(num(o.totale))}</div></div>`;
+  }).join('') || '<div class="note">Nessun ordine.</div>';
+  $('histDayBody').innerHTML = `
+    <div class="card" style="margin-bottom:14px">
+      <div class="irow"><div class="l">👥 Clienti · ⚪ palline</div><div class="v">${h.clienti} · ${fmt(h.palline)}</div></div>
+      <div class="irow"><div class="l">🌾 Farina · 🧫 lievito</div><div class="v">${fmt(h.farinaKg)} kg · ${fmt(h.lievito)} g</div></div>
+      <div class="irow total"><div class="l">💶 Incasso</div><div class="v">${money(h.incasso)}</div></div>
+    </div>
+    <div class="section-title" style="margin-left:0">Ordini</div>${ordersHtml}`;
+  showSheet('histSheet');
 }
 function renderDatalist() { $('clientsDL').innerHTML = Object.keys(state.clients).sort().map((n) => `<option value="${escapeHtml(n)}">`).join(''); }
 function emptyState(i, t, s) { return `<div class="empty"><div class="big">${i}</div><div style="font-weight:700;font-size:18px;color:var(--text)">${t}</div><div style="margin-top:4px">${s}</div></div>`; }
