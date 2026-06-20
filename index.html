@@ -123,6 +123,7 @@
   .prod-item:first-child .prod-item-h{border-top:none;padding-top:0;}
   .prod-spec{background:color-mix(in srgb,var(--accent) 13%,transparent);color:var(--accent);font-weight:800;font-size:16px;padding:11px 13px;border-radius:11px;margin:0 0 4px;}
   .prod-sub{font-size:13px;color:var(--text-2);font-weight:600;margin:0 2px 2px;}
+  .prod-spec-b{background:color-mix(in srgb,var(--blue) 13%,transparent);color:var(--blue);}
   .ing-row{display:grid;grid-template-columns:1fr 96px 34px;gap:8px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--sep);}
   .ing-row:last-child{border-bottom:none;}
   .ing-row input{width:100%;padding:11px 12px;font-size:16px;font-weight:600;border-radius:10px;border:1px solid var(--sep);background:var(--card-2);color:var(--text);}
@@ -130,6 +131,24 @@
   .ing-row input[readonly]{opacity:.7;}
   .ing-row .gwrap{display:flex;align-items:center;gap:4px;} .ing-row .gwrap .u{font-size:12px;color:var(--text-2);font-weight:700;}
   .ing-row .it-del{height:42px;border-radius:10px;background:var(--card-2);color:var(--red);font-size:16px;font-weight:700;}
+  .impasto-card{padding:12px 14px;margin-bottom:12px;}
+  .impasto-head{display:grid;grid-template-columns:1fr 120px 34px;gap:8px;align-items:center;margin-bottom:6px;}
+  .impasto-head.main{grid-template-columns:1fr 120px;}
+  .impasto-head input{width:100%;padding:11px 12px;font-size:16px;font-weight:700;border-radius:10px;border:1px solid var(--sep);background:var(--card-2);color:var(--text);}
+  .impasto-head .gwrap{display:flex;align-items:center;gap:4px;} .impasto-head .u{font-size:11px;color:var(--text-2);font-weight:700;}
+  .impasto-head .it-del{height:42px;border-radius:10px;background:var(--card-2);color:var(--red);font-weight:700;}
+  .im-ings{border-top:.5px dashed var(--sep);margin-top:6px;}
+  .prod-edit{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:12px;margin-bottom:10px;}
+  .prod-edit .pr-name{width:100%;padding:12px;font-size:16px;font-weight:700;border-radius:10px;border:1px solid var(--sep);background:var(--card-2);color:var(--text);margin-bottom:8px;}
+  .prod-edit .prow2{display:grid;grid-template-columns:1fr 1fr auto 34px;gap:6px;align-items:center;}
+  .prod-edit .gwrap{display:flex;align-items:center;gap:3px;background:var(--card-2);border:1px solid var(--sep);border-radius:10px;padding:0 8px;}
+  .prod-edit .gwrap input{width:100%;padding:11px 2px;font-size:15px;font-weight:600;border:none;background:transparent;color:var(--text);}
+  .prod-edit .gwrap input:focus{outline:none;} .prod-edit .gwrap .u{font-size:12px;color:var(--text-2);font-weight:700;}
+  .prod-edit .pr-mode{padding:10px 6px;font-size:13px;font-weight:700;border-radius:10px;border:1px solid var(--sep);background:var(--card-2);color:var(--text);}
+  .prod-edit .it-del{height:40px;border-radius:10px;background:var(--card-2);color:var(--red);font-weight:700;}
+  .order-prod{display:grid;grid-template-columns:1fr 88px;gap:8px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--sep);}
+  .order-prod:last-child{border-bottom:none;} .order-prod .opn{font-weight:600;} .order-prod .ops{font-size:12px;color:var(--text-2);}
+  .order-prod input{width:100%;text-align:center;padding:11px;font-size:17px;font-weight:700;border-radius:10px;border:1px solid var(--sep);background:var(--card-2);color:var(--text);}
   .live-calc{background:var(--card-2);border-radius:14px;padding:12px 14px;font-size:14px;color:var(--text-2);margin-bottom:14px;display:flex;justify-content:space-between;}
   .live-calc b{color:var(--text);font-size:16px;}
   .del-link{text-align:center;color:var(--red);font-weight:700;padding:14px;margin-top:4px;}
@@ -182,6 +201,7 @@
     <div class="mini3 owner-only" id="trendRow"></div>
     <div class="section-title">Ingredienti da preparare</div>
     <div class="card" id="ingCard"></div>
+    <div id="prodottiSection"></div>
     <div class="section-title owner-only">Condividi con i collaboratori</div>
     <div class="btn-row owner-only" style="margin-top:0">
       <button class="btn blue small" onclick="shareProduzione()">📤 Link rapido</button>
@@ -218,6 +238,9 @@
       <button class="btn green small" onclick="shareLive()">🟢 Tempo reale</button>
     </div>
     <div class="note">Cosa preparare per ogni cliente · la spezzatrice divide ogni pesata in <b id="prodPerCycle">37</b> palline.</div>
+    <div class="section-title" style="margin-left:0">🍞 Dosi impasti</div>
+    <div id="dosiImpasti"></div>
+    <div class="section-title" style="margin-left:0">📋 Per cliente</div>
     <div id="prodList"></div>
   </section>
 
@@ -245,18 +268,23 @@
 
   <!-- SETTINGS -->
   <section class="view" id="view-settings">
-    <div class="section-title">Ricetta · ingredienti per kg di farina</div>
-    <div class="note" style="margin-top:0">Puoi rinominare un ingrediente (es. Fecola → Fiocchi) e aggiungerne altri. La Farina è la base e resta fissa a 1000 g.</div>
-    <div class="set-group" id="recipeSettings"></div>
-    <button class="btn ghost small" type="button" onclick="addIngrediente()">➕ Aggiungi ingrediente</button>
+    <div class="section-title">🍞 Impasti e dosi</div>
+    <div class="note" style="margin-top:0">Definisci uno o più impasti (es. Pane, Focaccia). Per ognuno: nome, lievito e ingredienti per kg di farina. La Farina è la base (1000 g). Il primo impasto è quello delle palline.</div>
+    <div id="impastiSettings"></div>
+    <button class="btn ghost small" type="button" onclick="addImpasto()">➕ Aggiungi impasto</button>
 
-    <div class="section-title">Spezzatrice e lievito</div>
+    <div class="section-title">Spezzatrice</div>
     <div class="set-group">
       <div class="set-row"><div><div class="sl">Palline per pesata</div><div class="sd">Capacità della spezzatrice</div></div><input id="set-percycle" inputmode="numeric" /></div>
-      <div class="set-row"><div><div class="sl">Lievito predefinito</div><div class="sd">g per kg di farina</div></div><input id="set-lievito" inputmode="decimal" /></div>
     </div>
-    <button class="btn small" onclick="saveRecipe()">💾 Salva ricetta</button>
-    <button class="btn ghost small" style="margin-top:10px" onclick="resetRecipe()">↺ Ripristina ricetta standard</button>
+    <button class="btn small" onclick="saveRecipe()">💾 Salva impasti</button>
+    <button class="btn ghost small" style="margin-top:10px" onclick="resetRecipe()">↺ Ripristina impasto standard</button>
+
+    <div class="section-title">🥐 Prodotti (focacce, panini…)</div>
+    <div class="note" style="margin-top:0">Prodotti venduti a pezzo o al kg, con il loro peso. Li aggiungi negli ordini dei clienti.</div>
+    <div id="productsSettings"></div>
+    <button class="btn ghost small" type="button" onclick="addProductRow()">➕ Aggiungi prodotto</button>
+    <button class="btn small" style="margin-top:10px" onclick="saveProducts()">💾 Salva prodotti</button>
 
     <div class="section-title">☁️ Sincronizzazione cloud (Supabase)</div>
     <div class="card">
@@ -313,9 +341,11 @@
     <h2 id="orderSheetTitle">Nuovo ordine</h2>
     <div class="field"><label>Cliente</label><input id="f-name" list="clientsDL" placeholder="Es. Vito" autocomplete="off" /><datalist id="clientsDL"></datalist></div>
     <div class="field"><label>Prezzo (uguale per tutte le righe)</label><div class="inwrap"><input id="f-prezzo" inputmode="decimal" placeholder="4,50" /><span class="suffix">€/kg</span></div></div>
-    <label style="display:block;font-size:13px;font-weight:700;color:var(--text-2);margin:0 4px 6px;text-transform:uppercase;letter-spacing:.3px">Righe · palline e peso</label>
+    <label style="display:block;font-size:13px;font-weight:700;color:var(--text-2);margin:0 4px 6px;text-transform:uppercase;letter-spacing:.3px">Palline · numero e peso</label>
     <div id="itemsBox"></div>
-    <button class="btn ghost small" type="button" onclick="addItemRow()" style="margin-bottom:14px">➕ Aggiungi riga</button>
+    <button class="btn ghost small" type="button" onclick="addItemRow()" style="margin-bottom:14px">➕ Aggiungi riga palline</button>
+    <div id="orderProdsWrap"><label style="display:block;font-size:13px;font-weight:700;color:var(--text-2);margin:0 4px 6px;text-transform:uppercase;letter-spacing:.3px">Prodotti · quantità</label>
+    <div id="orderProdsBox"></div></div>
     <div class="live-calc"><span>Peso totale · Incasso</span><b id="orderLive">—</b></div>
     <button class="btn" id="orderSaveBtn" onclick="saveOrder()">Salva ordine</button>
     <div class="del-link" id="orderDelete" style="display:none" onclick="deleteCurrentOrder()">Elimina ordine</div>
@@ -359,8 +389,9 @@ const KEY = 'panificio_state';
 const DEVKEY = 'panificio_device';
 const DEFAULT_RECIPE = { farina: 1000, fecola: 10, acqua: 500, sale: 30, olio: 50 };
 function defaultIngredients() { return [{ name: 'Farina', g: 1000, base: true }, { name: 'Fecola', g: 10 }, { name: 'Acqua', g: 500 }, { name: 'Sale', g: 30 }, { name: 'Olio', g: 50 }]; }
-const DEFAULT_SETTINGS = { ingredients: defaultIngredients(), perCycle: 37, lievitoPerKg: 3, theme: 'auto', sync: { url: '', key: '', workspace: '' } };
-const DEFAULT_STATE = { orders: [], clients: {}, history: [], settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), backups: [], lastBackup: '', updatedAt: new Date().toISOString() };
+function defaultImpasti() { return [{ id: 'main', name: 'Pane', ingredients: defaultIngredients(), lievitoPerKg: 3 }]; }
+const DEFAULT_SETTINGS = { impasti: defaultImpasti(), perCycle: 37, theme: 'auto', sync: { url: '', key: '', workspace: '' } };
+const DEFAULT_STATE = { orders: [], clients: {}, history: [], products: [], impastiKg: {}, settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), backups: [], lastBackup: '', updatedAt: new Date().toISOString() };
 
 let state = load();
 let editingId = null, currentClient = null;
@@ -378,15 +409,22 @@ function load() {
       const merged = Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_STATE)), s);
       merged.settings = Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), s.settings || {});
       merged.settings.sync = Object.assign({ url: '', key: '', workspace: '' }, (s.settings && s.settings.sync) || {});
-      // ingredienti dinamici: usa quelli salvati, oppure migra dal vecchio formato "recipe"
-      const ss = s.settings || {};
-      if (Array.isArray(ss.ingredients) && ss.ingredients.length) merged.settings.ingredients = ss.ingredients;
-      else if (ss.recipe) { const r = ss.recipe; merged.settings.ingredients = [{ name: 'Farina', g: r.farina || 1000, base: true }, { name: 'Fecola', g: r.fecola != null ? r.fecola : 10 }, { name: 'Acqua', g: r.acqua != null ? r.acqua : 500 }, { name: 'Sale', g: r.sale != null ? r.sale : 30 }, { name: 'Olio', g: r.olio != null ? r.olio : 50 }]; }
-      else merged.settings.ingredients = defaultIngredients();
-      delete merged.settings.recipe;
-      // migrazione da v1/v2 (lievitoPerKg / theme a livello root)
-      if (typeof s.lievitoPerKg === 'number') merged.settings.lievitoPerKg = s.lievitoPerKg;
       if (typeof s.theme === 'string') merged.settings.theme = s.theme;
+      // IMPASTI multipli: usa quelli salvati, oppure migra dal formato precedente (ingredients + lievitoPerKg / recipe)
+      const ss = s.settings || {};
+      if (Array.isArray(ss.impasti) && ss.impasti.length) merged.settings.impasti = ss.impasti;
+      else {
+        let ings;
+        if (Array.isArray(ss.ingredients) && ss.ingredients.length) ings = ss.ingredients;
+        else if (ss.recipe) { const r = ss.recipe; ings = [{ name: 'Farina', g: r.farina || 1000, base: true }, { name: 'Fecola', g: r.fecola != null ? r.fecola : 10 }, { name: 'Acqua', g: r.acqua != null ? r.acqua : 500 }, { name: 'Sale', g: r.sale != null ? r.sale : 30 }, { name: 'Olio', g: r.olio != null ? r.olio : 50 }]; }
+        else ings = defaultIngredients();
+        const lpk = (ss.lievitoPerKg != null) ? ss.lievitoPerKg : (typeof s.lievitoPerKg === 'number' ? s.lievitoPerKg : 3);
+        merged.settings.impasti = [{ id: 'main', name: 'Pane', ingredients: ings, lievitoPerKg: lpk }];
+      }
+      merged.settings.impasti.forEach((im, i) => { if (!im.id) im.id = (i === 0 ? 'main' : 'imp_' + Math.random().toString(36).slice(2, 7)); if (!Array.isArray(im.ingredients) || !im.ingredients.length) im.ingredients = defaultIngredients(); if (im.lievitoPerKg == null) im.lievitoPerKg = 3; });
+      delete merged.settings.ingredients; delete merged.settings.lievitoPerKg; delete merged.settings.recipe;
+      if (!Array.isArray(merged.products)) merged.products = [];
+      if (!merged.impastiKg || typeof merged.impastiKg !== 'object') merged.impastiKg = {};
       normalizeOrders(merged.orders);
       return merged;
     }
@@ -427,7 +465,16 @@ function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 /* ============================ CALCOLI ============================ */
-function ingr() { if (!Array.isArray(state.settings.ingredients) || !state.settings.ingredients.length) state.settings.ingredients = defaultIngredients(); return state.settings.ingredients; }
+function impasti() { if (!Array.isArray(state.settings.impasti) || !state.settings.impasti.length) state.settings.impasti = defaultImpasti(); return state.settings.impasti; }
+function mainImpasto() { return impasti()[0]; }
+function impastoById(id) { return impasti().find((x) => x.id === id) || mainImpasto(); }
+function impastoDoughPerKg(im) { return (im.ingredients || []).reduce((s, i) => s + num(i.g), 0); }
+function impastoDoses(im, farinaKg) { return { ingredients: (im.ingredients || []).map((i) => ({ name: i.name, emoji: emojiFor(i.name), grams: num(i.g) * farinaKg, base: !!i.base })), lievito: farinaKg * num(im.lievitoPerKg) }; }
+function ingr() { const im = mainImpasto(); if (!Array.isArray(im.ingredients) || !im.ingredients.length) im.ingredients = defaultIngredients(); return im.ingredients; }
+/* --- PRODOTTI (focacce, panini...) --- */
+function productTotal(p) { return p.mode === 'kg' ? (num(p.qty) * num(p.peso) / 1000) * num(p.prezzo) : num(p.qty) * num(p.prezzo); }
+function orderProducts(o) { return Array.isArray(o.products) ? o.products : []; }
+function orderProductsTotal(o) { return orderProducts(o).reduce((s, p) => s + productTotal(p), 0); }
 function emojiFor(name) {
   const n = (name || '').toLowerCase();
   if (/farin|farro|grano|semol/.test(n)) return '🌾';
@@ -447,7 +494,7 @@ function emojiFor(name) {
 }
 function doughPerKg() { return ingr().reduce((s, i) => s + num(i.g), 0); }
 function perCycle() { return Math.max(1, Math.round(num(state.settings.perCycle) || 37)); }
-function lievitoDefault() { return num(state.settings.lievitoPerKg); }
+function lievitoDefault() { return num(mainImpasto().lievitoPerKg); }
 // "3 pesate da 2 kg + 5 palline"
 function pesataSpec(it) {
   const per = perCycle(), peso = num(it.pesoPallina), pall = num(it.palline);
@@ -460,8 +507,8 @@ function pesataSpec(it) {
 
 // Ogni ordine ha più righe (items): {palline, pesoPallina, done:[]}. Fallback su vecchio formato a riga singola.
 function orderItems(o) {
-  if (Array.isArray(o.items) && o.items.length) return o.items;
-  return [{ palline: num(o.palline), pesoPallina: num(o.pesoPallina), done: o.done }];
+  if (Array.isArray(o.items)) return o.items;
+  return (o.palline != null) ? [{ palline: num(o.palline), pesoPallina: num(o.pesoPallina), done: o.done }] : [];
 }
 function ensureItemDone(it) {
   const n = pesateList(it).length;
@@ -471,15 +518,17 @@ function ensureItemDone(it) {
 function normalizeOrders(orders) {
   if (!Array.isArray(orders)) return;
   orders.forEach((o) => {
-    if (!Array.isArray(o.items) || !o.items.length) o.items = [{ palline: num(o.palline), pesoPallina: num(o.pesoPallina), done: Array.isArray(o.done) ? o.done : [] }];
+    if (!Array.isArray(o.items)) o.items = (o.palline != null) ? [{ palline: num(o.palline), pesoPallina: num(o.pesoPallina), done: Array.isArray(o.done) ? o.done : [] }] : [];
     o.items.forEach((it) => { it.palline = num(it.palline); it.pesoPallina = num(it.pesoPallina); ensureItemDone(it); });
+    if (!Array.isArray(o.products)) o.products = [];
     delete o.palline; delete o.pesoPallina; delete o.done;
   });
 }
 function orderPalline(o) { return orderItems(o).reduce((s, it) => s + num(it.palline), 0); }
 function orderDoughG(o) { return orderItems(o).reduce((s, it) => s + num(it.palline) * num(it.pesoPallina), 0); }
 function orderKg(o) { return orderDoughG(o) / 1000; }
-function orderTotal(o) { return orderKg(o) * num(o.prezzoKg); }
+function orderPallineTotal(o) { return orderKg(o) * num(o.prezzoKg); }
+function orderTotal(o) { return orderPallineTotal(o) + orderProductsTotal(o); }
 function orderMaxPeso(o) { return orderItems(o).reduce((m, it) => Math.max(m, num(it.pesoPallina)), 0); }
 function orderSummary(o) { return orderItems(o).map((it) => fmt(num(it.palline)) + '×' + fmt(num(it.pesoPallina)) + 'g').join(' + '); }
 
@@ -496,9 +545,15 @@ function spezzatrice(o) {
   return { palline, peso, per, complete: Math.floor(palline / per), residuo: palline % per, pesoPesata: peso * per, pesoUltima: (palline % per) * peso, totale: palline * peso };
 }
 function dayTotals() {
-  const t = { palline: 0, doughG: 0, incasso: 0 }; const names = new Set();
-  for (const o of state.orders) { names.add((o.clientName || '').toLowerCase().trim()); t.palline += orderPalline(o); t.doughG += orderDoughG(o); t.incasso += orderTotal(o); }
-  t.clienti = names.size; t.kg = t.doughG / 1000; t.prezzoMedio = t.kg > 0 ? t.incasso / t.kg : 0;
+  const t = { palline: 0, doughG: 0, incasso: 0, pallineIncasso: 0, prodottiIncasso: 0, products: {} }; const names = new Set();
+  for (const o of state.orders) {
+    names.add((o.clientName || '').toLowerCase().trim());
+    t.palline += orderPalline(o); t.doughG += orderDoughG(o);
+    t.pallineIncasso += orderPallineTotal(o); t.prodottiIncasso += orderProductsTotal(o);
+    orderProducts(o).forEach((p) => { const k = p.name || '?'; if (!t.products[k]) t.products[k] = { name: k, qty: 0, peso: num(p.peso) }; t.products[k].qty += num(p.qty); });
+  }
+  t.incasso = t.pallineIncasso + t.prodottiIncasso;
+  t.clienti = names.size; t.kg = t.doughG / 1000; t.prezzoMedio = t.kg > 0 ? t.pallineIncasso / t.kg : 0;
   t.farinaKg = safeCeil(t.doughG / doughPerKg());
   t.ingredients = ingredientsFor(t.farinaKg); t.lievito = t.farinaKg * lievitoDefault();
   return t;
@@ -527,6 +582,9 @@ function renderDash() {
     <div class="lievito-box owner-only"><span class="e" style="font-size:19px">🧫</span><div style="flex:1"><div style="font-weight:700">Lievito</div><div style="font-size:13px;color:var(--text-2)">grammi per kg di farina</div></div><input id="lievInput" inputmode="decimal" value="${inp(lievitoDefault())}" /></div>
     <div class="irow total"><div class="l">🧫 Lievito totale (${fmt(t.farinaKg)} kg × ${fmt(lievitoDefault())} g)</div><div class="v">${fmt(t.lievito, 0)} g</div></div>`;
   const li = $('lievInput'); li.addEventListener('change', () => { state.settings.lievitoPerKg = num(li.value); save(); render(); });
+  // prodotti del giorno
+  const plist = Object.values(t.products);
+  $('prodottiSection').innerHTML = plist.length ? `<div class="section-title">🥐 Prodotti del giorno</div><div class="card">${plist.map((p) => `<div class="irow"><div class="l">${escapeHtml(p.name)}</div><div class="v">${fmt(p.qty)} pz</div></div>`).join('')}<div class="irow total"><div class="l">💶 Incasso prodotti</div><div class="v">${money(t.prodottiIncasso)}</div></div></div>` : '';
   // ricetta card
   $('recipeGrid').innerHTML = ingr().map((i) => `<div class="ri"><div class="rn">${emojiFor(i.name)} ${escapeHtml(i.name)}</div><div class="rv">${fmt(num(i.g))} g</div></div>`).join('') +
     `<div class="ri"><div class="rn">🧫 Lievito</div><div class="rv">${fmt(lievitoDefault())} g/kg</div></div>`;
@@ -558,15 +616,22 @@ function renderTrend() {
 function renderOrders() {
   const el = $('ordersList');
   if (!state.orders.length) { el.innerHTML = emptyState('📦', 'Nessun ordine', 'Tocca “Nuovo ordine” per iniziare la giornata.'); return; }
-  el.innerHTML = state.orders.map((o) => `
-    <div class="order tap" onclick="openOrder('${o.id}')">
+  el.innerHTML = state.orders.map((o) => {
+    const hasP = orderItems(o).length > 0; const metaParts = [];
+    if (hasP) metaParts.push(orderSummary(o));
+    orderProducts(o).forEach((p) => metaParts.push(fmt(num(p.qty)) + '× ' + escapeHtml(p.name)));
+    const meta = metaParts.join(' · ') || '—';
+    const sub = hasP ? `${fmt(orderPalline(o))} pall · ${fmt(orderKg(o), 2)} kg` : `${fmt(orderProducts(o).reduce((s, p) => s + num(p.qty), 0))} pezzi`;
+    return `<div class="order tap" onclick="openOrder('${o.id}')">
       <div class="ava">${initials(o.clientName)}</div>
-      <div class="info"><div class="name">${escapeHtml(o.clientName)}</div><div class="meta">${escapeHtml(orderSummary(o))} · ${money(num(o.prezzoKg))}/kg</div></div>
-      <div class="amt">${money(orderTotal(o))}<small>${fmt(orderPalline(o))} pall · ${fmt(orderKg(o), 2)} kg</small></div>
-    </div>`).join('');
+      <div class="info"><div class="name">${escapeHtml(o.clientName)}</div><div class="meta">${meta}</div></div>
+      <div class="amt">${money(orderTotal(o))}<small>${sub}</small></div>
+    </div>`;
+  }).join('');
 }
 
 function renderProd() {
+  renderDosiImpasti($('dosiImpasti'), state.settings.role !== 'collab');
   const el = $('prodList');
   if (!state.orders.length) { el.innerHTML = emptyState('🔪', 'Niente da produrre', 'Aggiungi ordini per vedere le pesate.'); return; }
   const sorted = [...state.orders].sort((a, b) => orderMaxPeso(b) - orderMaxPeso(a) || orderPalline(b) - orderPalline(a));
@@ -577,12 +642,35 @@ function renderProd() {
         <div class="prod-spec">🔪 ${pesataSpec(it)}</div>
         <div class="prod-sub">⚪ ${fmt(num(it.palline))} palline da ${fmt(num(it.pesoPallina))} g</div>
       </div>`).join('');
+    const prodLines = orderProducts(o).map((p) => `
+      <div class="prod-item">
+        <div class="prod-spec prod-spec-b">🥐 ${fmt(num(p.qty))} × ${escapeHtml(p.name)}</div>
+        <div class="prod-sub">${fmt(num(p.peso))} g a pezzo</div>
+      </div>`).join('');
+    const head = items.length ? `${fmt(orderPalline(o))} palline · ${fmt(orderDoughG(o))} g impasto` : `${fmt(orderProducts(o).reduce((s, p) => s + num(p.qty), 0))} pezzi`;
     return `
       <div class="prod-client">
-        <div class="prod-head"><div><div class="pn">${escapeHtml(o.clientName)}</div><div class="pp">${fmt(orderPalline(o))} palline · ${fmt(orderDoughG(o))} g impasto</div></div></div>
-        <div class="prod-body">${blocks}</div>
+        <div class="prod-head"><div><div class="pn">${escapeHtml(o.clientName)}</div><div class="pp">${head}</div></div></div>
+        <div class="prod-body">${blocks}${prodLines}</div>
       </div>`;
   }).join('');
+}
+function renderDosiImpasti(container, editable) {
+  if (!container) return;
+  const t = dayTotals();
+  container.innerHTML = impasti().map((im, idx) => {
+    const kg = idx === 0 ? t.farinaKg : Math.max(0, num(state.impastiKg[im.id] || 0));
+    const d = impastoDoses(im, kg);
+    const rows = d.ingredients.map((x) => `<div class="irow"><div class="l"><span class="e">${x.emoji}</span>${escapeHtml(x.name)}</div><div class="v">${gOrKg(x.grams)}</div></div>`).join('');
+    const right = idx === 0
+      ? `<div style="text-align:right"><div class="pn">${fmt(kg)} kg</div><div class="pp">farina · auto</div></div>`
+      : (editable
+        ? `<div style="display:flex;align-items:center;gap:5px"><input class="imkg" data-id="${im.id}" inputmode="decimal" value="${kg ? fmt(kg) : ''}" placeholder="kg" style="width:66px;text-align:right;padding:10px;font-size:16px;font-weight:800;border-radius:10px;border:1px solid var(--sep);background:var(--bg-elev);color:var(--text)" /><span style="font-size:11px;color:var(--text-2);font-weight:700">kg farina</span></div>`
+        : `<div style="text-align:right"><div class="pn">${fmt(kg)} kg</div><div class="pp">farina</div></div>`);
+    const body = kg > 0 ? rows + `<div class="irow total"><div class="l">🧫 Lievito (${fmt(num(im.lievitoPerKg))} g/kg)</div><div class="v">${fmt(d.lievito)} g</div></div>` : '<div class="note" style="margin:8px 0 0">Imposta i kg di farina per vedere le dosi.</div>';
+    return `<div class="prod-client"><div class="prod-head"><div><div class="pn">🍞 ${escapeHtml(im.name)}</div><div class="pp">${idx === 0 ? 'impasto delle palline' : 'impasto extra'}</div></div>${right}</div><div class="prod-body">${body}</div></div>`;
+  }).join('');
+  if (editable) container.querySelectorAll('.imkg').forEach((el) => el.addEventListener('change', () => { state.impastiKg[el.dataset.id] = num(el.value); save(); renderDosiImpasti(container, true); }));
 }
 function togglePesata(id, ii, pi) {
   const o = state.orders.find((x) => x.id === id); if (!o) return;
@@ -636,10 +724,34 @@ function ingRowHtml(name, g, base) {
     ${base ? '<span></span>' : '<button class="it-del" type="button" title="Rimuovi" onclick="this.closest(\'.ing-row\').remove()">✕</button>'}
   </div>`;
 }
+function impastoCardHtml(im, idx) {
+  const isMain = idx === 0;
+  return `<div class="set-group impasto-card" data-id="${im.id}">
+    <div class="impasto-head ${isMain ? 'main' : ''}">
+      <input class="im-name" value="${escapeHtml(im.name)}" placeholder="Nome impasto" />
+      <div class="gwrap"><input class="im-liev" inputmode="decimal" value="${inp(num(im.lievitoPerKg))}" style="width:60px;text-align:right;padding:11px 8px;font-size:15px;font-weight:700;border-radius:10px;border:1px solid var(--sep);background:var(--card-2);color:var(--text)" /><span class="u">g/kg liev.</span></div>
+      ${isMain ? '' : '<button class="it-del" type="button" title="Elimina impasto" onclick="this.closest(\'.impasto-card\').remove()">✕</button>'}
+    </div>
+    <div class="im-ings">${(im.ingredients || []).map((i, k) => ingRowHtml(i.name, i.g, k === 0 || !!i.base)).join('')}</div>
+    <button class="btn ghost small" type="button" onclick="addIngredienteTo(this)" style="margin-top:8px">➕ Aggiungi ingrediente</button>
+  </div>`;
+}
+function productRowHtml(p) {
+  p = p || {};
+  return `<div class="prod-edit" data-id="${p.id || ''}">
+    <input class="pr-name" value="${escapeHtml(p.name || '')}" placeholder="Nome (es. Ruota di focaccia)" />
+    <div class="prow2">
+      <div class="gwrap"><input class="pr-peso" inputmode="decimal" value="${p.peso != null ? inp(num(p.peso)) : ''}" placeholder="peso" /><span class="u">g</span></div>
+      <div class="gwrap"><input class="pr-prezzo" inputmode="decimal" value="${p.prezzo != null ? inp(num(p.prezzo)) : ''}" placeholder="prezzo" /><span class="u">€</span></div>
+      <select class="pr-mode"><option value="pezzo" ${p.mode !== 'kg' ? 'selected' : ''}>a pezzo</option><option value="kg" ${p.mode === 'kg' ? 'selected' : ''}>al kg</option></select>
+      <button class="it-del" type="button" onclick="this.closest('.prod-edit').remove()">✕</button>
+    </div>
+  </div>`;
+}
 function renderSettings() {
-  $('recipeSettings').innerHTML = ingr().map((i, k) => ingRowHtml(i.name, i.g, k === 0 || !!i.base)).join('');
+  $('impastiSettings').innerHTML = impasti().map((im, idx) => impastoCardHtml(im, idx)).join('');
+  $('productsSettings').innerHTML = (state.products && state.products.length) ? state.products.map((p) => productRowHtml(p)).join('') : '<div class="note" style="margin:6px 4px">Nessun prodotto. Tocca “Aggiungi prodotto”.</div>';
   $('set-percycle').value = perCycle();
-  $('set-lievito').value = inp(lievitoDefault());
   const sy = state.settings.sync;
   $('sync-url').value = sy.url || ''; $('sync-key').value = sy.key || ''; $('sync-ws').value = sy.workspace || '';
   $('sqlBox').textContent = SQL_SCHEMA;
@@ -658,28 +770,50 @@ create policy "accesso anon" on panificio_sync
   for all using (true) with check (true);
 alter publication supabase_realtime add table panificio_sync;`;
 
-function addIngrediente() {
-  $('recipeSettings').insertAdjacentHTML('beforeend', ingRowHtml('', '', false));
-  const names = $('recipeSettings').querySelectorAll('.rc-name'); const last = names[names.length - 1]; if (last) last.focus();
+function addIngredienteTo(btn) {
+  const box = btn.closest('.impasto-card').querySelector('.im-ings');
+  box.insertAdjacentHTML('beforeend', ingRowHtml('', '', false));
+  const names = box.querySelectorAll('.rc-name'); const last = names[names.length - 1]; if (last) last.focus();
+}
+function addImpasto() {
+  const im = { id: 'imp_' + Math.random().toString(36).slice(2, 7), name: '', ingredients: defaultIngredients(), lievitoPerKg: 3 };
+  $('impastiSettings').insertAdjacentHTML('beforeend', impastoCardHtml(im, $('impastiSettings').children.length));
+  const cards = $('impastiSettings').querySelectorAll('.impasto-card'); const last = cards[cards.length - 1]; if (last) last.querySelector('.im-name').focus();
+}
+function readImpastoCard(card, ci) {
+  const name = card.querySelector('.im-name').value.trim() || ('Impasto ' + (ci + 1));
+  const liev = num(card.querySelector('.im-liev').value);
+  const rows = [...card.querySelector('.im-ings').querySelectorAll('.ing-row')];
+  const ings = [];
+  rows.forEach((row, k) => { const nm = row.querySelector('.rc-name').value.trim(); const g = num(row.querySelector('.rc-g').value); if (k === 0) ings.push({ name: nm || 'Farina', g: g > 0 ? g : 1000, base: true }); else if (nm && g > 0) ings.push({ name: nm, g }); });
+  if (!ings.length || !ings[0].base) ings.unshift({ name: 'Farina', g: 1000, base: true });
+  return { id: card.dataset.id || (ci === 0 ? 'main' : 'imp_' + Math.random().toString(36).slice(2, 7)), name, ingredients: ings, lievitoPerKg: liev >= 0 ? liev : 3 };
 }
 function saveRecipe() {
-  const rows = [...$('recipeSettings').querySelectorAll('.ing-row')];
-  const list = [];
-  rows.forEach((row, k) => {
-    const name = row.querySelector('.rc-name').value.trim(); const g = num(row.querySelector('.rc-g').value);
-    if (k === 0) list.push({ name: name || 'Farina', g: g > 0 ? g : 1000, base: true });
-    else if (name && g > 0) list.push({ name, g });
-  });
-  if (!list.length || !list[0].base) list.unshift({ name: 'Farina', g: 1000, base: true });
-  state.settings.ingredients = list;
+  const cards = [...$('impastiSettings').querySelectorAll('.impasto-card')];
+  let list = cards.map((c, ci) => readImpastoCard(c, ci));
+  if (!list.length) list = defaultImpasti();
+  list[0].id = 'main';
+  state.settings.impasti = list;
   const pc = Math.round(num($('set-percycle').value)); if (pc >= 1) state.settings.perCycle = pc;
-  const lv = num($('set-lievito').value); if (lv >= 0) state.settings.lievitoPerKg = lv;
-  save(); render(); renderSettings(); toast('Ricetta salvata ✓');
+  save(); render(); renderSettings(); toast('Impasti salvati ✓');
 }
 function resetRecipe() {
-  if (!confirm('Ripristinare la ricetta standard (Farina 1000, Fecola 10, Acqua 500, Sale 30, Olio 50 · 37 palline · 3 g/kg)?')) return;
-  state.settings.ingredients = defaultIngredients(); state.settings.perCycle = 37; state.settings.lievitoPerKg = 3;
-  save(); render(); renderSettings(); toast('Ricetta ripristinata');
+  if (!confirm('Ripristinare l\'impasto standard (Pane: Farina 1000, Fecola 10, Acqua 500, Sale 30, Olio 50 · lievito 3 g/kg)? Gli altri impasti aggiunti verranno rimossi.')) return;
+  state.settings.impasti = defaultImpasti(); state.settings.perCycle = 37;
+  save(); render(); renderSettings(); toast('Impasto ripristinato');
+}
+function addProductRow() {
+  const box = $('productsSettings'); const note = box.querySelector('.note'); if (note) note.remove();
+  box.insertAdjacentHTML('beforeend', productRowHtml({}));
+  const names = box.querySelectorAll('.pr-name'); const last = names[names.length - 1]; if (last) last.focus();
+}
+function saveProducts() {
+  const rows = [...$('productsSettings').querySelectorAll('.prod-edit')];
+  const list = [];
+  rows.forEach((r) => { const name = r.querySelector('.pr-name').value.trim(); if (!name) return; list.push({ id: r.dataset.id || ('prod_' + Math.random().toString(36).slice(2, 7)), name, peso: num(r.querySelector('.pr-peso').value), prezzo: num(r.querySelector('.pr-prezzo').value), mode: r.querySelector('.pr-mode').value }); });
+  state.products = list;
+  save(); render(); renderSettings(); toast('Prodotti salvati ✓');
 }
 
 /* ============================ ORDER SHEET ============================ */
@@ -706,17 +840,41 @@ function openOrder(id) {
   $('f-name').value = o ? o.clientName : '';
   $('f-prezzo').value = o ? inp(num(o.prezzoKg)) : '';
   $('itemsBox').innerHTML = '';
-  if (o) orderItems(o).forEach((it) => addItemRow(num(it.palline), inp(num(it.pesoPallina)))); else addItemRow('', '90');
+  const its = o ? orderItems(o) : [];
+  if (its.length) its.forEach((it) => addItemRow(num(it.palline), inp(num(it.pesoPallina)))); else addItemRow('', '90');
+  renderOrderProds(o);
   $('orderDelete').style.display = o ? 'block' : 'none';
   $('orderSaveBtn').textContent = o ? 'Salva modifiche' : 'Salva ordine';
   updateOrderLive(); showSheet('orderSheet');
   if (!o) setTimeout(() => $('f-name').focus(), 320);
 }
+function renderOrderProds(o) {
+  const box = $('orderProdsBox'), cat = state.products || [];
+  if (!cat.length) { $('orderProdsWrap').style.display = 'none'; box.innerHTML = ''; return; }
+  $('orderProdsWrap').style.display = 'block';
+  const existing = {}; if (o) orderProducts(o).forEach((p) => { existing[p.id || p.name] = num(p.qty); });
+  box.innerHTML = cat.map((p) => {
+    const q = existing[p.id] != null ? existing[p.id] : (existing[p.name] || '');
+    const priceLabel = p.mode === 'kg' ? money(num(p.prezzo)) + '/kg' : money(num(p.prezzo)) + '/pz';
+    return `<div class="order-prod" data-id="${p.id}"><div><div class="opn">${escapeHtml(p.name)}</div><div class="ops">${fmt(num(p.peso))} g · ${priceLabel}</div></div><input class="op-qty" inputmode="numeric" placeholder="0" value="${q === '' ? '' : q}" /></div>`;
+  }).join('');
+  box.querySelectorAll('.op-qty').forEach((i) => i.addEventListener('input', updateOrderLive));
+}
+function readOrderProducts() {
+  const cat = state.products || [], out = [];
+  document.querySelectorAll('#orderProdsBox .order-prod').forEach((row) => {
+    const id = row.dataset.id, qty = num(row.querySelector('.op-qty').value);
+    if (qty > 0) { const p = cat.find((x) => x.id === id); if (p) out.push({ id: p.id, name: p.name, peso: num(p.peso), prezzo: num(p.prezzo), mode: p.mode, qty }); }
+  });
+  return out;
+}
 function updateOrderLive() {
   const prezzo = num($('f-prezzo').value); let dough = 0;
   readItems().forEach((it) => { dough += it.palline * it.pesoPallina; });
-  const tot = (dough / 1000) * prezzo;
-  $('orderLive').textContent = dough > 0 ? `${fmt(dough)} g · ${money(tot)}` : '—';
+  const prods = readOrderProducts(); let tot = (dough / 1000) * prezzo;
+  prods.forEach((p) => { tot += productTotal(p); });
+  const bits = []; if (dough > 0) bits.push(fmt(dough) + ' g'); const npz = prods.reduce((s, p) => s + num(p.qty), 0); if (npz) bits.push(fmt(npz) + ' pz');
+  $('orderLive').textContent = (dough > 0 || npz) ? `${bits.join(' · ')} · ${money(tot)}` : '—';
 }
 $('f-prezzo').addEventListener('input', updateOrderLive);
 $('f-name').addEventListener('change', () => {
@@ -725,16 +883,16 @@ $('f-name').addEventListener('change', () => {
 });
 function saveOrder() {
   const name = $('f-name').value.trim(), prezzoKg = num($('f-prezzo').value);
-  const items = readItems();
+  const items = readItems(), products = readOrderProducts();
   if (!name) { toast('Inserisci il nome cliente'); return; }
-  if (!items.length) { toast('Aggiungi almeno una riga (palline e peso)'); return; }
+  if (!items.length && !products.length) { toast('Aggiungi palline o prodotti'); return; }
   items.forEach((it) => ensureItemDone(it));
   if (editingId) {
-    const o = state.orders.find((x) => x.id === editingId); o.clientName = name; o.prezzoKg = prezzoKg; o.items = items;
+    const o = state.orders.find((x) => x.id === editingId); o.clientName = name; o.prezzoKg = prezzoKg; o.items = items; o.products = products;
   } else {
     const existing = state.orders.find((x) => (x.clientName || '').toLowerCase().trim() === name.toLowerCase());
-    if (existing) { existing.items = orderItems(existing).concat(items); if (prezzoKg > 0) existing.prezzoKg = prezzoKg; }
-    else state.orders.push({ id: uid(), clientName: name, prezzoKg, items });
+    if (existing) { existing.items = orderItems(existing).concat(items); existing.products = orderProducts(existing).concat(products); if (prezzoKg > 0) existing.prezzoKg = prezzoKg; }
+    else state.orders.push({ id: uid(), clientName: name, prezzoKg, items, products });
   }
   if (!state.clients[name]) state.clients[name] = { prezzoKg, history: [] }; else if (prezzoKg > 0) state.clients[name].prezzoKg = prezzoKg;
   save(); render(); hideSheet('orderSheet');
@@ -787,7 +945,7 @@ function calcInverse() {
 function saveDay() {
   if (!state.orders.length) { toast('Nessun ordine da salvare'); return; }
   const t = dayTotals();
-  const entry = { id: uid(), date: new Date().toISOString(), clienti: t.clienti, palline: t.palline, kg: t.kg, farinaKg: t.farinaKg, lievito: t.lievito, lievitoPerKg: lievitoDefault(), incasso: t.incasso, ingredients: t.ingredients, orders: state.orders.map((o) => ({ clientName: o.clientName, prezzoKg: o.prezzoKg, palline: orderPalline(o), kg: orderKg(o), totale: orderTotal(o), items: orderItems(o).map((it) => ({ palline: num(it.palline), pesoPallina: num(it.pesoPallina) })) })) };
+  const entry = { id: uid(), date: new Date().toISOString(), clienti: t.clienti, palline: t.palline, kg: t.kg, farinaKg: t.farinaKg, lievito: t.lievito, lievitoPerKg: lievitoDefault(), incasso: t.incasso, prodottiIncasso: t.prodottiIncasso, ingredients: t.ingredients, prodotti: Object.values(t.products), orders: state.orders.map((o) => ({ clientName: o.clientName, prezzoKg: o.prezzoKg, palline: orderPalline(o), kg: orderKg(o), totale: orderTotal(o), items: orderItems(o).map((it) => ({ palline: num(it.palline), pesoPallina: num(it.pesoPallina) })), products: orderProducts(o).map((p) => ({ name: p.name, qty: num(p.qty), peso: num(p.peso), prezzo: num(p.prezzo), mode: p.mode })) })) };
   state.history.push(entry);
   for (const o of state.orders) {
     if (!state.clients[o.clientName]) state.clients[o.clientName] = { prezzoKg: num(o.prezzoKg), history: [] };
@@ -853,12 +1011,24 @@ function exportPDF() {
   doc.text(fmt(t.palline), cols[1][1], y + 5, { align: 'right' }); doc.text(fmt(t.kg, 2), cols[3][1], y + 5, { align: 'right' });
   doc.setTextColor(200, 100, 0); doc.text(money(t.incasso), cols[5][1], y + 5, { align: 'right' }); doc.setTextColor(40); doc.setFont('helvetica', 'normal');
   y += 16;
-  // ingredienti
-  if (y > 235) { doc.addPage(); y = 18; }
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.text('Ingredienti da preparare', L, y); y += 4;
-  const rows = t.ingredients.map((x) => [x.name, gOrKg(x.grams)]).concat([['Lievito (' + fmt(lievitoDefault()) + ' g/kg)', fmt(t.lievito) + ' g']]);
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
-  rows.forEach((r) => { doc.setDrawColor(235); doc.roundedRect(L, y, R - L, 8, 1, 1); doc.text(r[0], L + 3, y + 5.5); doc.setFont('helvetica', 'bold'); doc.text(r[1], R - 3, y + 5.5, { align: 'right' }); doc.setFont('helvetica', 'normal'); y += 9; });
+  // DOSI IMPASTI (per ogni impasto)
+  const drawDoseBlock = (title, rows) => {
+    if (y > 250) { doc.addPage(); y = 18; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(40); doc.text(title, L, y); y += 4;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+    rows.forEach((r) => { if (y > 280) { doc.addPage(); y = 18; } doc.setDrawColor(235); doc.roundedRect(L, y, R - L, 8, 1, 1); doc.text(String(r[0]), L + 3, y + 5.5); doc.setFont('helvetica', 'bold'); doc.text(String(r[1]), R - 3, y + 5.5, { align: 'right' }); doc.setFont('helvetica', 'normal'); y += 9; });
+    y += 3;
+  };
+  impasti().forEach((im, idx) => {
+    const kg = idx === 0 ? t.farinaKg : num(state.impastiKg[im.id] || 0);
+    if (kg <= 0) return;
+    const d = impastoDoses(im, kg);
+    const rows = d.ingredients.map((x) => [x.name, gOrKg(x.grams)]).concat([['Lievito (' + fmt(num(im.lievitoPerKg)) + ' g/kg)', fmt(d.lievito) + ' g']]);
+    drawDoseBlock('Impasto ' + im.name + ' · ' + fmt(kg) + ' kg farina', rows);
+  });
+  // PRODOTTI
+  const plist = Object.values(t.products);
+  if (plist.length) drawDoseBlock('Prodotti', plist.map((p) => [p.name, fmt(p.qty) + ' pz']).concat([['Incasso prodotti', money(t.prodottiIncasso)]]));
   doc.setFontSize(8); doc.setTextColor(160); doc.text('Generato da Panificio Manager Pro · ' + new Date().toLocaleString('it-IT'), L, 290);
   doc.save('Panificio_' + todayKey() + '.pdf'); toast('PDF scaricato ✓');
 }
@@ -901,11 +1071,18 @@ function exportCSV(which) {
   }
   if (!state.orders.length) { toast('Aggiungi ordini prima di esportare'); return; }
   const t = dayTotals();
-  const rows = [['Cliente', 'Palline', 'Peso pallina g', 'Kg', 'Prezzo EUR/kg', 'Totale riga EUR', 'Pesate complete', 'Peso pesata g', 'Residuo palline', 'Peso ultima pesata g']];
+  const rows = [['PALLINE'], ['Cliente', 'Palline', 'Peso pallina g', 'Kg', 'Prezzo EUR/kg', 'Totale riga EUR', 'Pesate complete', 'Peso pesata g', 'Residuo palline', 'Peso ultima pesata g']];
   state.orders.forEach((o) => { orderItems(o).forEach((it) => { const s = spezzatrice(it); const kg = num(it.palline) * num(it.pesoPallina) / 1000; rows.push([o.clientName, fmt(num(it.palline)), fmt(num(it.pesoPallina)), fmt(kg, 2), fmt(num(o.prezzoKg), 2), fmt(kg * num(o.prezzoKg), 2), s.complete, fmt(s.pesoPesata), s.residuo, fmt(s.pesoUltima)]); }); });
-  rows.push([]); rows.push(['TOTALE', fmt(t.palline), '', fmt(t.kg, 2), 'media ' + fmt(t.prezzoMedio, 2), fmt(t.incasso, 2)]);
-  rows.push(['Farina kg', fmt(t.farinaKg)]); rows.push(['Lievito g', fmt(t.lievito)]);
-  t.ingredients.filter((x) => !/farin/i.test(x.name)).forEach((x) => rows.push([x.name + ' g', fmt(x.grams)]));
+  // prodotti
+  const anyProd = state.orders.some((o) => orderProducts(o).length);
+  if (anyProd) {
+    rows.push([]); rows.push(['PRODOTTI']); rows.push(['Cliente', 'Prodotto', 'Quantità', 'Peso g', 'Prezzo EUR', 'Modo', 'Totale riga EUR']);
+    state.orders.forEach((o) => { orderProducts(o).forEach((p) => rows.push([o.clientName, p.name, fmt(num(p.qty)), fmt(num(p.peso)), fmt(num(p.prezzo), 2), p.mode === 'kg' ? 'al kg' : 'a pezzo', fmt(productTotal(p), 2)])); });
+  }
+  rows.push([]); rows.push(['TOTALI']); rows.push(['Incasso palline EUR', fmt(t.pallineIncasso, 2)]); rows.push(['Incasso prodotti EUR', fmt(t.prodottiIncasso, 2)]); rows.push(['Incasso totale EUR', fmt(t.incasso, 2)]);
+  // dosi impasti
+  rows.push([]); rows.push(['DOSI IMPASTI']);
+  impasti().forEach((im, idx) => { const kg = idx === 0 ? t.farinaKg : num(state.impastiKg[im.id] || 0); if (kg <= 0) return; const d = impastoDoses(im, kg); rows.push(['Impasto', im.name, fmt(kg) + ' kg farina']); d.ingredients.forEach((x) => rows.push(['', x.name + ' g', fmt(x.grams)])); rows.push(['', 'Lievito g', fmt(d.lievito)]); });
   downloadFile('Panificio_' + todayKey() + '.csv', rows.map((r) => r.map(csvCell).join(';')).join('\r\n')); toast('CSV giornata scaricato ✓');
 }
 
@@ -918,7 +1095,7 @@ function autoBackup() {
   if (state.backups.length > 14) state.backups = state.backups.slice(-14);
   state.lastBackup = today; save({ remote: true });
 }
-function serializableState() { return { orders: state.orders, clients: state.clients, history: state.history, settings: { ingredients: state.settings.ingredients, perCycle: state.settings.perCycle, lievitoPerKg: state.settings.lievitoPerKg } }; }
+function serializableState() { return { orders: state.orders, clients: state.clients, history: state.history, products: state.products, impastiKg: state.impastiKg, settings: { impasti: state.settings.impasti, perCycle: state.settings.perCycle } }; }
 function downloadBackup() { downloadFile('Panificio_backup_' + todayKey() + '.json', JSON.stringify(state, null, 2), 'application/json'); toast('Backup scaricato ✓'); }
 $('restoreFile').addEventListener('change', (e) => {
   const f = e.target.files[0]; if (!f) return; const r = new FileReader();
@@ -927,7 +1104,9 @@ $('restoreFile').addEventListener('change', (e) => {
       const obj = JSON.parse(r.result); const data = obj.data ? obj.data : obj;
       if (!confirm('Ripristinare questi dati? Sostituiranno ordini, clienti e storico attuali.')) return;
       if (data.orders) { state.orders = data.orders; normalizeOrders(state.orders); } if (data.clients) state.clients = data.clients; if (data.history) state.history = data.history;
-      if (data.settings) { if (Array.isArray(data.settings.ingredients) && data.settings.ingredients.length) state.settings.ingredients = data.settings.ingredients; else if (data.settings.recipe) { const r = data.settings.recipe; state.settings.ingredients = [{ name: 'Farina', g: r.farina || 1000, base: true }, { name: 'Fecola', g: r.fecola != null ? r.fecola : 10 }, { name: 'Acqua', g: r.acqua != null ? r.acqua : 500 }, { name: 'Sale', g: r.sale != null ? r.sale : 30 }, { name: 'Olio', g: r.olio != null ? r.olio : 50 }]; } if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; if (data.settings.lievitoPerKg != null) state.settings.lievitoPerKg = data.settings.lievitoPerKg; }
+      if (Array.isArray(data.products)) state.products = data.products;
+      if (data.impastiKg && typeof data.impastiKg === 'object') state.impastiKg = data.impastiKg;
+      if (data.settings) { if (Array.isArray(data.settings.impasti) && data.settings.impasti.length) state.settings.impasti = data.settings.impasti; else if (Array.isArray(data.settings.ingredients) && data.settings.ingredients.length) state.settings.impasti = [{ id: 'main', name: 'Pane', ingredients: data.settings.ingredients, lievitoPerKg: data.settings.lievitoPerKg != null ? data.settings.lievitoPerKg : 3 }]; if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; }
       save(); render(); toast('Dati ripristinati ✓');
     } catch (err) { toast('File non valido'); }
   };
@@ -959,7 +1138,9 @@ async function pushNow() {
 function applyRemote(data, updatedAt) {
   applyingRemote = true;
   if (data.orders) { state.orders = data.orders; normalizeOrders(state.orders); } if (data.clients) state.clients = data.clients; if (data.history) state.history = data.history;
-  if (data.settings) { if (Array.isArray(data.settings.ingredients) && data.settings.ingredients.length) state.settings.ingredients = data.settings.ingredients; else if (data.settings.recipe) { const r = data.settings.recipe; state.settings.ingredients = [{ name: 'Farina', g: r.farina || 1000, base: true }, { name: 'Fecola', g: r.fecola != null ? r.fecola : 10 }, { name: 'Acqua', g: r.acqua != null ? r.acqua : 500 }, { name: 'Sale', g: r.sale != null ? r.sale : 30 }, { name: 'Olio', g: r.olio != null ? r.olio : 50 }]; } if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; if (data.settings.lievitoPerKg != null) state.settings.lievitoPerKg = data.settings.lievitoPerKg; }
+  if (Array.isArray(data.products)) state.products = data.products;
+  if (data.impastiKg && typeof data.impastiKg === 'object') state.impastiKg = data.impastiKg;
+  if (data.settings) { if (Array.isArray(data.settings.impasti) && data.settings.impasti.length) state.settings.impasti = data.settings.impasti; else if (Array.isArray(data.settings.ingredients) && data.settings.ingredients.length) state.settings.impasti = [{ id: 'main', name: 'Pane', ingredients: data.settings.ingredients, lievitoPerKg: data.settings.lievitoPerKg != null ? data.settings.lievitoPerKg : 3 }]; if (data.settings.perCycle) state.settings.perCycle = data.settings.perCycle; }
   state.updatedAt = updatedAt || new Date().toISOString();
   save({ remote: true }); render(); applyingRemote = false;
 }
@@ -1051,6 +1232,15 @@ function runTests() {
   ok('multiriga dough g', orderDoughG(ml), 9000 + 2500);
   ok('multiriga totale', orderTotal(ml), (11500 / 1000) * 4);
   state.orders = [ml]; const t2 = dayTotals(); ok('multiriga 1 cliente', t2.clienti, 1); ok('multiriga farina ceil(11500/1590)=8', t2.farinaKg, 8);
+  // PRODOTTI
+  ok('prod a pezzo', productTotal({ mode: 'pezzo', qty: 10, prezzo: 3, peso: 500 }), 30);
+  ok('prod al kg', productTotal({ mode: 'kg', qty: 4, peso: 500, prezzo: 2 }), 4);
+  const po = { clientName: 'P', prezzoKg: 4.5, items: [{ palline: 100, pesoPallina: 90 }], products: [{ name: 'F', qty: 10, peso: 500, prezzo: 3, mode: 'pezzo' }] };
+  ok('order totale con prodotti', Math.round(orderTotal(po) * 100) / 100, Math.round((9 * 4.5 + 30) * 100) / 100);
+  state.orders = [po]; const t3 = dayTotals(); ok('day incasso prodotti', t3.prodottiIncasso, 30); ok('day prod qty', t3.products['F'].qty, 10);
+  // DOSI IMPASTO
+  const im = { name: 'X', ingredients: [{ name: 'Farina', g: 1000, base: true }, { name: 'Acqua', g: 600 }], lievitoPerKg: 5 };
+  const dd = impastoDoses(im, 10); ok('impasto farina', dd.ingredients[0].grams, 10000); ok('impasto acqua', dd.ingredients[1].grams, 6000); ok('impasto lievito', dd.lievito, 50);
   state.orders = before;
   return res;
 }
@@ -1066,8 +1256,9 @@ function doShare(title, text, url) {
 }
 // --- Link rapido: snapshot sola lettura, senza prezzi ---
 function sharePayload() {
-  return { v: 2, t: 'prod', date: new Date().toISOString(), ig: ingr().map((i) => ({ n: i.name, g: num(i.g) })), pc: perCycle(), lv: lievitoDefault(),
-    o: state.orders.map((o) => ({ n: o.clientName, it: orderItems(o).map((it) => ({ p: num(it.palline), w: num(it.pesoPallina) })) })) };
+  return { v: 3, t: 'prod', date: new Date().toISOString(), pc: perCycle(),
+    imp: impasti().map((im, idx) => ({ n: im.name, lv: num(im.lievitoPerKg), ig: (im.ingredients || []).map((i) => ({ n: i.name, g: num(i.g) })), kg: idx === 0 ? null : num(state.impastiKg[im.id] || 0) })),
+    o: state.orders.map((o) => ({ n: o.clientName, it: orderItems(o).map((it) => ({ p: num(it.palline), w: num(it.pesoPallina) })), pr: orderProducts(o).map((p) => ({ n: p.name, q: num(p.qty), w: num(p.peso) })) })) };
 }
 function shareProduzione() {
   if (!state.orders.length) { toast('Aggiungi ordini prima di condividere'); return; }
@@ -1111,28 +1302,30 @@ function shareSpec(per, w, pall) {
   return parts.length ? parts.join(' + ') : '—';
 }
 function renderShare(p) {
-  const list0 = p.ig || (p.rc ? [{ n: 'Farina', g: p.rc.farina }, { n: 'Fecola', g: p.rc.fecola }, { n: 'Acqua', g: p.rc.acqua }, { n: 'Sale', g: p.rc.sale }, { n: 'Olio', g: p.rc.olio }] : []);
-  const dpk = list0.reduce((s, i) => s + i.g, 0); let doughG = 0, pall = 0;
-  p.o.forEach((o) => o.it.forEach((it) => { doughG += it.p * it.w; pall += it.p; }));
-  const farinaKg = Math.ceil(doughG / dpk - 1e-9);
-  const liev = farinaKg * p.lv;
-  const ingHtml = `
-    <div class="section-title" style="margin-left:0">🧂 Impasto da preparare</div>
-    <div class="card">
-      ${list0.map((i) => `<div class="irow"><div class="l"><span class="e">${emojiFor(i.n)}</span>${escapeHtml(i.n)}</div><div class="v">${gOrKg(i.g * farinaKg)}</div></div>`).join('')}
-      <div class="irow total"><div class="l">🧫 Lievito</div><div class="v">${fmt(liev)} g</div></div>
-    </div>`;
-  const prodHtml = p.o.map((o, oi) => {
-    const totPall = o.it.reduce((s, it) => s + it.p, 0);
-    const blocks = o.it.map((it) => `<div class="prod-item"><div class="prod-spec">🔪 ${shareSpec(p.pc, it.w, it.p)}</div><div class="prod-sub">⚪ ${fmt(it.p)} palline da ${fmt(it.w)} g</div></div>`).join('');
-    return `<div class="prod-client"><div class="prod-head"><div><div class="pn">${escapeHtml(o.n)}</div><div class="pp">${fmt(totPall)} palline</div></div></div><div class="prod-body">${blocks}</div></div>`;
+  // compatibilità: payload vecchio (ig/lv) -> singolo impasto Pane
+  const imps = (p.imp && p.imp.length) ? p.imp : [{ n: 'Pane', lv: p.lv || 0, ig: p.ig || (p.rc ? [{ n: 'Farina', g: p.rc.farina }, { n: 'Fecola', g: p.rc.fecola }, { n: 'Acqua', g: p.rc.acqua }, { n: 'Sale', g: p.rc.sale }, { n: 'Olio', g: p.rc.olio }] : []), kg: null }];
+  let doughMainG = 0, totPall = 0;
+  p.o.forEach((o) => (o.it || []).forEach((it) => { doughMainG += it.p * it.w; totPall += it.p; }));
+  const mainDpk = (imps[0].ig || []).reduce((s, i) => s + i.g, 0) || 1;
+  const farinaMain = Math.ceil(doughMainG / mainDpk - 1e-9);
+  const dosiHtml = imps.map((im, idx) => {
+    const kg = idx === 0 ? farinaMain : num(im.kg || 0);
+    const rows = (im.ig || []).map((i) => `<div class="irow"><div class="l"><span class="e">${emojiFor(i.n)}</span>${escapeHtml(i.n)}</div><div class="v">${gOrKg(i.g * kg)}</div></div>`).join('');
+    const body = kg > 0 ? rows + `<div class="irow total"><div class="l">🧫 Lievito</div><div class="v">${fmt(kg * num(im.lv))} g</div></div>` : '<div class="note" style="margin:8px 0 0">—</div>';
+    return `<div class="prod-client"><div class="prod-head"><div><div class="pn">🍞 ${escapeHtml(im.n)}</div><div class="pp">${idx === 0 ? 'impasto palline' : 'impasto extra'}</div></div><div style="text-align:right"><div class="pn">${fmt(kg)} kg</div><div class="pp">farina</div></div></div><div class="prod-body">${body}</div></div>`;
+  }).join('');
+  const prodHtml = p.o.map((o) => {
+    const its = o.it || [], prs = o.pr || [];
+    const blocks = its.map((it) => `<div class="prod-item"><div class="prod-spec">🔪 ${shareSpec(p.pc, it.w, it.p)}</div><div class="prod-sub">⚪ ${fmt(it.p)} palline da ${fmt(it.w)} g</div></div>`).join('');
+    const prodLines = prs.map((pr) => `<div class="prod-item"><div class="prod-spec prod-spec-b">🥐 ${fmt(pr.q)} × ${escapeHtml(pr.n)}</div><div class="prod-sub">${fmt(pr.w)} g a pezzo</div></div>`).join('');
+    const head = its.length ? `${fmt(its.reduce((s, it) => s + it.p, 0))} palline` : `${fmt(prs.reduce((s, x) => s + x.q, 0))} pezzi`;
+    return `<div class="prod-client"><div class="prod-head"><div><div class="pn">${escapeHtml(o.n)}</div><div class="pp">${head}</div></div></div><div class="prod-body">${blocks}${prodLines}</div></div>`;
   }).join('');
   $('view-share').innerHTML = `
     <div class="share-banner">📋 Produzione da preparare<div class="bt">Cosa preparare per ogni cliente</div></div>
-    <div class="grid" style="margin-bottom:4px">${stat('⚪', 'Totale palline', fmt(pall), '')}${stat('🌾', 'Farina', fmt(farinaKg), 'kg')}</div>
-    ${ingHtml}
-    <div class="section-title" style="margin-left:0">🔪 Pesate da spezzare</div>
-    ${prodHtml}`;
+    <div class="grid" style="margin-bottom:4px">${stat('⚪', 'Totale palline', fmt(totPall), '')}${stat('🌾', 'Farina pane', fmt(farinaMain), 'kg')}</div>
+    <div class="section-title" style="margin-left:0">🍞 Dosi impasti</div>${dosiHtml}
+    <div class="section-title" style="margin-left:0">📋 Per cliente</div>${prodHtml}`;
   $('view-share').classList.add('active');
 }
 function toggleShare(key) {
