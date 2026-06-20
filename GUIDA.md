@@ -30,8 +30,8 @@ Funziona **offline**, si installa come app su iPhone/iPad/Android e (se vuoi) si
    - **incasso previsto** e prezzo medio,
    - **ingredienti da preparare** + lievito totale.
 4. Nel campo **Lievito** scegli i grammi per kg di farina di oggi: il totale si aggiorna.
-5. **🔪 Produzione**: per ogni cliente la lista delle pesate da **spuntare** una a una
-   (peso esatto di ogni pesata + ultima pesata residua).
+5. **🔪 Produzione**: per ogni cliente il conto pronto, es. **"3 pesate da 3.330 g
+   + 5 palline"** (le pesate complete da mettere nella spezzatrice + le palline che restano).
 6. **🖨️ PDF** o **📊 CSV** per stampare/esportare. **💾 Salva giornata** per archiviare.
 
 ---
@@ -79,16 +79,16 @@ Tu inserisci gli ordini, i collaboratori vedono cosa preparare. Due modi:
 ### A) Link rapido (subito, senza registrazioni) 📤
 1. Vai in **Produzione** (o nella Dashboard) e premi **📤 Link rapido**.
 2. Si apre la condivisione del telefono: mandalo su **WhatsApp** al collaboratore.
-3. Lui apre il link e vede **solo il da farsi**: impasto da preparare + tutte le
-   pesate da spezzare. Niente prezzi, niente modifiche. Può **spuntare le pesate**
-   sul suo telefono mentre lavora.
+3. Lui apre il link e vede **solo il da farsi**: impasto da preparare + il conto
+   delle pesate per ogni cliente (es. "3 pesate da 3.330 g + 5 palline"). Niente
+   prezzi, niente modifiche.
 4. Se cambi gli ordini dopo, rimanda il link (è una "fotografia" del momento).
 
 ### B) Tempo reale 🟢 (richiede la sincronizzazione cloud attiva, vedi punto 5)
 1. Configura una volta Supabase (punto 5).
 2. Premi **🟢 Tempo reale**: mandi un link al collaboratore.
 3. Lui lo apre **una volta**: l'app si collega da sola e da quel momento vede gli
-   aggiornamenti **in diretta**, e le pesate spuntate sono **condivise** con te.
+   aggiornamenti **in diretta** (se aggiungi o cambi un ordine, lo vede subito).
 4. Il collaboratore è in **modalità sola lettura** (vede Oggi e Produzione, non può
    modificare ordini né vedere gli incassi). Per uscire: pulsante **Esci** in basso.
 
