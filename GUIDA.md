@@ -22,19 +22,20 @@ Funziona **offline**, si installa come app su iPhone/iPad/Android e (se vuoi) si
 
 ## 2. Uso quotidiano (meno di 30 secondi)
 
-1. **➕ Nuovo ordine** → scrivi nome cliente, n° palline, peso pallina, prezzo €/kg.
-   - Se il cliente è già in archivio, il **prezzo si compila da solo**.
-2. Ripeti per ogni cliente.
-3. Nella **Dashboard (Oggi)** vedi subito:
-   - ordini, clienti, palline, peso impasto, **kg di farina** (arrotondati per eccesso),
-   - **incasso previsto** e prezzo medio,
-   - **ingredienti da preparare** + lievito totale.
-4. Nel campo **Lievito** scegli i grammi per kg di farina di oggi: il totale si aggiorna.
-5. **🔪 Produzione**: per ogni cliente il conto pronto in **pesate intere**, es.
-   **"3 pesate da 3.330 g"**, con accanto lo **scarto** (es. +18 / −5 palline)
-   rispetto a quanto richiesto. Le pesate sono arrotondate automaticamente
-   (vedi sotto), l'avanzo si riutilizza.
-6. **🖨️ PDF** o **📊 CSV** per stampare/esportare. **💾 Salva giornata** per archiviare.
+La schermata principale **"Nuovo ordine"** è essenziale e veloce:
+
+1. **➕ Nuovo ordine** → scrivi nome cliente, n° palline, peso pallina, prezzo €/kg
+   (e, se vuoi, i prodotti). Se il cliente è già in archivio, il **prezzo si compila da solo**.
+2. Ripeti per ogni cliente: compaiono i **riquadri cliente** con nome e **prezzo**.
+3. Quando il cliente ritira e paga, **tocca il suo riquadro**: diventa verde con la
+   spunta ✓ (**Pagato**). In alto vedi sempre **Da riscuotere** e **Incassato**.
+4. **🏭 Produzione interna**: nel campo *Kg di farina per il negozio* scrivi quanti kg
+   di farina impasti in più per la produzione del negozio (panzerotti, ecc.), es. 18.
+5. **🧾 Ricetta finale del giorno**: si genera da sola sommando l'impasto di tutti gli
+   ordini + la produzione interna → farina, acqua, sale, olio, fecola, lievito totali.
+6. **🔪 Produzione**: per ogni cliente il conto in **pesate intere** (es. "3 pesate da
+   3.330 g") con lo **scarto** (+18 / −5 palline). **📤 Condividi** per mandarlo ai
+   dipendenti, **💾 Salva giornata** per archiviare.
 
 ---
 
