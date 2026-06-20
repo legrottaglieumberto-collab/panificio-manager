@@ -22,20 +22,19 @@ Funziona **offline**, si installa come app su iPhone/iPad/Android e (se vuoi) si
 
 ## 2. Uso quotidiano (meno di 30 secondi)
 
-La schermata principale **"Nuovo ordine"** è essenziale e veloce:
+La schermata principale **"Nuovo ordine"** è essenziale: solo gli ordini del giorno.
 
 1. **➕ Nuovo ordine** → scrivi nome cliente, n° palline, peso pallina, prezzo €/kg
    (e, se vuoi, i prodotti). Se il cliente è già in archivio, il **prezzo si compila da solo**.
 2. Ripeti per ogni cliente: compaiono i **riquadri cliente** con nome e **prezzo**.
 3. Quando il cliente ritira e paga, **tocca il suo riquadro**: diventa verde con la
-   spunta ✓ (**Pagato**). In alto vedi sempre **Da riscuotere** e **Incassato**.
-4. **🏭 Produzione interna**: nel campo *Kg di farina per il negozio* scrivi quanti kg
-   di farina impasti in più per la produzione del negozio (panzerotti, ecc.), es. 18.
-5. **🧾 Ricetta finale del giorno**: si genera da sola sommando l'impasto di tutti gli
-   ordini + la produzione interna → farina, acqua, sale, olio, fecola, lievito totali.
-6. **🔪 Produzione**: per ogni cliente il conto in **pesate intere** (es. "3 pesate da
-   3.330 g") con lo **scarto** (+18 / −5 palline). **📤 Condividi** per mandarlo ai
-   dipendenti, **💾 Salva giornata** per archiviare.
+   spunta ✓ (**Pagato**).
+4. In fondo alla home due pulsanti:
+   - **🔪 Produzione · ricetta e pesate** → mostra la **ricetta completa** dell'impasto
+     del giorno (farina, acqua, sale, olio, fecola, lievito… calcolata da tutti gli ordini)
+     e le **pesate** per ogni cliente; da qui **📤 Condividi** con i dipendenti, **PDF/CSV**.
+   - **📅 Storico ordini** → riepilogo di oggi, **💾 Salva / 🧹 Svuota giornata**, e le
+     **giornate passate**: tocca una giornata per rivedere tutti gli ordini di quel giorno.
 
 ---
 
