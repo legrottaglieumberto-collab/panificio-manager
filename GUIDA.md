@@ -29,10 +29,13 @@ La schermata principale **"Nuovo ordine"** è essenziale: solo gli ordini del gi
 2. Ripeti per ogni cliente: compaiono i **riquadri cliente** con nome e **prezzo**.
 3. Quando il cliente ritira e paga, **tocca il suo riquadro**: diventa verde con la
    spunta ✓ (**Pagato**).
-4. In fondo alla home due pulsanti:
+4. **🏭 Produzione interna**: sotto i riquadri, nel campo *Kg di farina per il negozio*
+   scrivi i kg di farina della produzione quotidiana del negozio (indipendente dagli ordini).
+5. In fondo alla home due pulsanti:
    - **🔪 Produzione · ricetta e pesate** → mostra la **ricetta completa** dell'impasto
-     del giorno (farina, acqua, sale, olio, fecola, lievito… calcolata da tutti gli ordini)
-     e le **pesate** per ogni cliente; da qui **📤 Condividi** con i dipendenti, **PDF/CSV**.
+     totale del giorno, sommando l'impasto di tutti gli ordini **+ la produzione interna**
+     (farina, acqua, sale, olio, fecola, lievito…) e le **pesate** per ogni cliente;
+     da qui **📤 Condividi** con i dipendenti, **PDF/CSV**.
    - **📅 Storico ordini** → riepilogo di oggi, **💾 Salva / 🧹 Svuota giornata**, e le
      **giornate passate**: tocca una giornata per rivedere tutti gli ordini di quel giorno.
 
