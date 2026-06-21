@@ -218,7 +218,14 @@
   <section class="view active" id="view-dash">
     <button class="btn owner-only" onclick="openOrder()" style="margin-bottom:14px">➕ Nuovo ordine</button>
     <div class="cgrid" id="clientBoxes"></div>
-    <button class="btn blue" onclick="go('prod')" style="margin-top:18px">🔪 Produzione · ricetta e pesate</button>
+    <div class="section-title owner-only">🏭 Produzione interna</div>
+    <div class="card owner-only">
+      <div class="set-row" style="border:none;padding:4px 0">
+        <div><div class="sl">Kg di farina per il negozio</div><div class="sd">produzione quotidiana, indipendente dagli ordini</div></div>
+        <div style="display:flex;align-items:center;gap:6px"><input id="internalFarina" inputmode="decimal" placeholder="0" oninput="setInternalFarina(this.value)" /><span class="sd">kg</span></div>
+      </div>
+    </div>
+    <button class="btn blue" onclick="go('prod')" style="margin-top:6px">🔪 Produzione · ricetta e pesate</button>
     <button class="btn secondary owner-only" onclick="go('history')" style="margin-top:12px">📅 Storico ordini</button>
   </section>
 
@@ -611,7 +618,7 @@ function boxSub(o) {
   return bits.join(' · ') || '—';
 }
 function togglePaid(id) { const o = state.orders.find((x) => x.id === id); if (!o) return; o.paid = !o.paid; save(); renderDash(); renderOrders(); renderHistory(); }
-function setInternalFarina(v) { state.internalFarina = Math.max(0, num(v)); save(); renderFinalRecipe(dayTotals()); }
+function setInternalFarina(v) { state.internalFarina = Math.max(0, num(v)); save(); }
 function renderFinalRecipe(t) {
   const rows = t.ingredients.map((x) => `<div class="irow"><div class="l"><span class="e">${x.emoji}</span>${escapeHtml(x.name)}</div><div class="v">${gOrKg(x.grams)}</div></div>`).join('');
   const breakdown = t.internalFarina > 0 ? `ordini ${fmt(t.ordersFarinaKg)} kg + negozio ${fmt(t.internalFarina)} kg` : `da ${fmt(t.ordersFarinaKg)} kg di farina`;
@@ -625,6 +632,7 @@ function renderDash() {
   $('clientBoxes').innerHTML = state.orders.length
     ? state.orders.map((o) => `<div class="cbox ${o.paid ? 'paid' : ''}" onclick="togglePaid('${o.id}')"><div class="tick">${o.paid ? '✓' : ''}</div><div class="cn">${escapeHtml(o.clientName)}</div><div class="cp">${money(orderTotal(o))}</div><div class="cs">${o.paid ? 'Pagato' : boxSub(o)}</div></div>`).join('')
     : `<div style="grid-column:1/-1">${emptyState('📦', 'Nessun ordine', 'Tocca “Nuovo ordine” per iniziare.')}</div>`;
+  const inf = $('internalFarina'); if (inf && document.activeElement !== inf) inf.value = num(state.internalFarina) ? inp(num(state.internalFarina)) : '';
 }
 function stat(e, l, v, u) { return `<div class="stat"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}${u ? ' <small>' + u + '</small>' : ''}</div></div>`; }
 function statAccent(e, l, v, s) { return `<div class="stat accent wide owner-only" id="incassoCard"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}</div>${s ? '<div class="label" style="margin-top:4px">' + s + '</div>' : ''}</div>`; }
