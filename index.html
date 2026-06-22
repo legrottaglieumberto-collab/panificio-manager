@@ -198,6 +198,16 @@
   .cbox.paid .cp{color:var(--green);text-decoration:line-through;}
   .cbox.paid .tick{background:var(--green);border-color:var(--green);}
   .cbox.paid .cs{color:var(--green);}
+  /* Contatore produzione interna */
+  .stepper{display:flex;align-items:center;gap:12px;justify-content:space-between;}
+  .stepper button{width:52px;height:52px;border-radius:14px;background:var(--card-2);color:var(--accent);font-size:28px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;}
+  .stepper button:active{transform:scale(.94);}
+  .stepper .stepval{flex:1;text-align:center;font-size:30px;font-weight:800;letter-spacing:-.5px;}
+  .stepper .stepval small{font-size:16px;color:var(--text-2);font-weight:700;}
+  .presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+  .presets .pchip{flex:1;min-width:56px;padding:11px 0;text-align:center;border-radius:11px;background:var(--card-2);font-weight:800;font-size:15px;}
+  .presets .pchip.on{background:var(--accent);color:#fff;}
+  .presets .pchip:active{transform:scale(.96);}
   datalist{color:#000;}
 </style>
 </head>
@@ -220,10 +230,14 @@
     <div class="cgrid" id="clientBoxes"></div>
     <div class="section-title owner-only">🏭 Produzione interna</div>
     <div class="card owner-only">
-      <div class="set-row" style="border:none;padding:4px 0">
-        <div><div class="sl">Kg di farina per il negozio</div><div class="sd">produzione quotidiana, indipendente dagli ordini</div></div>
-        <div style="display:flex;align-items:center;gap:6px"><input id="internalFarina" inputmode="decimal" placeholder="0" oninput="setInternalFarina(this.value)" /><span class="sd">kg</span></div>
+      <div class="sl">Kg di farina per il negozio</div>
+      <div class="sd" style="margin-bottom:10px">produzione quotidiana, indipendente dagli ordini</div>
+      <div class="stepper">
+        <button type="button" onclick="bumpInternal(-1)">−</button>
+        <div class="stepval"><span id="internalVal">0</span> <small>kg</small></div>
+        <button type="button" onclick="bumpInternal(1)">+</button>
       </div>
+      <div class="presets" id="internalPresets"></div>
     </div>
     <button class="btn blue" onclick="go('prod')" style="margin-top:6px">🔪 Produzione · ricetta e pesate</button>
     <button class="btn secondary owner-only" onclick="go('history')" style="margin-top:12px">📅 Storico ordini</button>
@@ -619,7 +633,16 @@ function boxSub(o) {
   return bits.join(' · ') || '—';
 }
 function togglePaid(id) { const o = state.orders.find((x) => x.id === id); if (!o) return; o.paid = !o.paid; save(); renderDash(); renderOrders(); renderHistory(); }
-function setInternalFarina(v) { state.internalFarina = Math.max(0, num(v)); save(); }
+const INTERNAL_PRESETS = [5, 10, 15, 20, 25, 30, 40, 50];
+function setInternalFarina(v) { state.internalFarina = Math.max(0, num(v)); save(); renderInternal(); }
+function bumpInternal(d) { state.internalFarina = Math.max(0, Math.round(num(state.internalFarina) + d)); save(); renderInternal(); }
+function setInternalPreset(v) { state.internalFarina = Math.max(0, num(v)); save(); renderInternal(); }
+function renderInternal() {
+  const cur = num(state.internalFarina);
+  const valEl = $('internalVal'); if (valEl) valEl.textContent = fmt(cur);
+  const box = $('internalPresets');
+  if (box) box.innerHTML = INTERNAL_PRESETS.map((v) => `<div class="pchip ${cur === v ? 'on' : ''}" onclick="setInternalPreset(${v})">${v}</div>`).join('');
+}
 function renderFinalRecipe(t) {
   const rows = t.ingredients.map((x) => `<div class="irow"><div class="l"><span class="e">${x.emoji}</span>${escapeHtml(x.name)}</div><div class="v">${gOrKg(x.grams)}</div></div>`).join('');
   const breakdown = t.internalFarina > 0 ? `ordini ${fmt(t.ordersFarinaKg)} kg + negozio ${fmt(t.internalFarina)} kg` : `da ${fmt(t.ordersFarinaKg)} kg di farina`;
@@ -633,7 +656,7 @@ function renderDash() {
   $('clientBoxes').innerHTML = state.orders.length
     ? state.orders.map((o) => `<div class="cbox ${o.paid ? 'paid' : ''}" onclick="togglePaid('${o.id}')"><div class="tick">${o.paid ? '✓' : ''}</div><div class="cn">${escapeHtml(o.clientName)}</div><div class="cp">${money(orderTotal(o))}</div><div class="cs">${o.paid ? 'Pagato' : boxSub(o)}</div></div>`).join('')
     : `<div style="grid-column:1/-1">${emptyState('📦', 'Nessun ordine', 'Tocca “Nuovo ordine” per iniziare.')}</div>`;
-  const inf = $('internalFarina'); if (inf && document.activeElement !== inf) inf.value = num(state.internalFarina) ? inp(num(state.internalFarina)) : '';
+  renderInternal();
 }
 function stat(e, l, v, u) { return `<div class="stat"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}${u ? ' <small>' + u + '</small>' : ''}</div></div>`; }
 function statAccent(e, l, v, s) { return `<div class="stat accent wide owner-only" id="incassoCard"><div class="emoji">${e}</div><div class="label">${l}</div><div class="value">${v}</div>${s ? '<div class="label" style="margin-top:4px">' + s + '</div>' : ''}</div>`; }
@@ -682,9 +705,15 @@ function renderProd() {
   const ps = $('prodottiSection');
   if (ps) { const plist = Object.values(dayTotals().products); ps.innerHTML = plist.length ? `<div class="section-title">🥐 Prodotti del giorno</div><div class="card">${plist.map((p) => `<div class="irow"><div class="l">${escapeHtml(p.name)}</div><div class="v">${fmt(p.qty)} pz</div></div>`).join('')}</div>` : ''; }
   const el = $('prodList');
-  if (!state.orders.length) { el.innerHTML = emptyState('🔪', 'Niente da produrre', 'Aggiungi ordini per vedere le pesate.'); return; }
+  const inf = num(state.internalFarina);
+  const negozioCard = inf > 0 ? `
+    <div class="prod-client">
+      <div class="prod-head"><div><div class="pn">🏭 Produzione negozio</div><div class="pp">impasto interno (non ordini)</div></div></div>
+      <div class="prod-body"><div class="prod-item"><div class="prod-spec prod-spec-b">🥣 ${fmt(inf)} kg di farina</div><div class="prod-sub">→ circa ${gOrKg(inf * doughPerKg())} di impasto da preparare per il negozio</div></div></div>
+    </div>` : '';
+  if (!state.orders.length) { el.innerHTML = negozioCard || emptyState('🔪', 'Niente da produrre', 'Aggiungi ordini o imposta la produzione interna.'); return; }
   const sorted = [...state.orders].sort((a, b) => orderMaxPeso(b) - orderMaxPeso(a) || orderPalline(b) - orderPalline(a));
-  el.innerHTML = sorted.map((o) => {
+  el.innerHTML = negozioCard + sorted.map((o) => {
     const items = orderItems(o);
     const blocks = items.map((it) => {
       const s = itemScarto(it); const sc = s === 0 ? '' : `<span class="scarto ${s > 0 ? 'pos' : 'neg'}">${scartoText(s)}</span>`;
@@ -1286,7 +1315,9 @@ function go(v) {
   $('view-' + v).classList.add('active');
   document.querySelectorAll('#nav button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
   $('topTitle').textContent = TITLES[v]; $('topSub').style.display = v === 'dash' ? 'block' : 'none';
-  if (v === 'settings') renderSettings();
+  // ri-disegna sempre la pagina che apri (così riflette gli ultimi dati, es. produzione interna)
+  const R = { dash: renderDash, orders: renderOrders, prod: renderProd, archive: renderArchive, history: renderHistory, settings: renderSettings };
+  if (R[v]) R[v]();
   window.scrollTo(0, 0);
 }
 document.querySelectorAll('#nav button').forEach((b) => b.addEventListener('click', () => go(b.dataset.v)));
@@ -1434,11 +1465,12 @@ function renderShare(p) {
     const head = its.length ? `${fmt(its.reduce((s, it) => s + it.p, 0))} palline` : `${fmt(prs.reduce((s, x) => s + x.q, 0))} pezzi`;
     return `<div class="prod-client"><div class="prod-head"><div><div class="pn">${escapeHtml(o.n)}</div><div class="pp">${head}</div></div></div><div class="prod-body">${blocks}${prodLines}</div></div>`;
   }).join('');
+  const negozioCard = internal > 0 ? `<div class="prod-client"><div class="prod-head"><div><div class="pn">🏭 Produzione negozio</div><div class="pp">impasto interno</div></div></div><div class="prod-body"><div class="prod-item"><div class="prod-spec prod-spec-b">🥣 ${fmt(internal)} kg di farina</div><div class="prod-sub">→ circa ${gOrKg(internal * mainDpk)} di impasto per il negozio</div></div></div></div>` : '';
   $('view-share').innerHTML = `
     <div class="share-banner">📋 Produzione da preparare<div class="bt">Cosa preparare per ogni cliente</div></div>
     <div class="grid" style="margin-bottom:4px">${stat('⚪', 'Totale palline', fmt(totPall), '')}${stat('🌾', 'Farina pane', fmt(farinaMain), 'kg')}</div>
     <div class="section-title" style="margin-left:0">🍞 Dosi impasti</div>${dosiHtml}
-    <div class="section-title" style="margin-left:0">📋 Per cliente</div>${prodHtml}`;
+    <div class="section-title" style="margin-left:0">📋 Per cliente</div>${negozioCard}${prodHtml}`;
   $('view-share').classList.add('active');
 }
 function toggleShare(key) {
