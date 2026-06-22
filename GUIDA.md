@@ -78,8 +78,10 @@ esatto di 37, l'app arrotonda da sola:
 - altrimenti → si ferma alle pesate piene.
 
 L'impasto viene calcolato su queste pesate arrotondate (l'avanzo si riutilizza).
-Accanto a ogni cliente vedi lo **scarto finale** rispetto al richiesto:
-**+18 palline** (prodotte in più, in verde) oppure **−5 palline** (in meno, in rosso).
+L'ordine resta il quantitativo richiesto: accanto vedi le palline in più come
+**avanzo N palline** (in verde, da mettere da parte) o, se arrotonda per difetto,
+**N palline in meno** (in rosso). Es.: ordine 250 → 7 pesate da 2.220 g = 259 palline,
+**avanzo 9 palline**.
 
 ---
 
