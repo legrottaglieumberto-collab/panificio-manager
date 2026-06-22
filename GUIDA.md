@@ -29,8 +29,10 @@ La schermata principale **"Nuovo ordine"** è essenziale: solo gli ordini del gi
 2. Ripeti per ogni cliente: compaiono i **riquadri cliente** con nome e **prezzo**.
 3. Quando il cliente ritira e paga, **tocca il suo riquadro**: diventa verde con la
    spunta ✓ (**Pagato**).
-4. **🏭 Produzione interna**: sotto i riquadri, nel campo *Kg di farina per il negozio*
-   scrivi i kg di farina della produzione quotidiana del negozio (indipendente dagli ordini).
+4. **🏭 Produzione interna**: sotto i riquadri, con il **contatore +/−** (o i valori
+   rapidi 5…50) imposti i kg di farina della produzione quotidiana del negozio
+   (indipendente dagli ordini). Questo genera un **ordine "Produzione negozio"** e le
+   sue dosi vengono sommate alla ricetta del giorno.
 5. In fondo alla home due pulsanti:
    - **🔪 Produzione · ricetta e pesate** → mostra la **ricetta completa** dell'impasto
      totale del giorno, sommando l'impasto di tutti gli ordini **+ la produzione interna**
