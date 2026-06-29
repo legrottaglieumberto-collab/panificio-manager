@@ -127,6 +127,10 @@
   .scarto{display:inline-block;font-size:13px;font-weight:800;padding:2px 9px;border-radius:20px;margin-left:6px;vertical-align:middle;}
   .scarto.pos{background:color-mix(in srgb,var(--green) 20%,transparent);color:var(--green);}
   .scarto.neg{background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red);}
+  .pmsg{display:flex;align-items:center;justify-content:center;gap:8px;font-size:19px;font-weight:800;padding:14px;border-radius:13px;margin:8px 0 4px;text-align:center;letter-spacing:-.2px;}
+  .pmsg.ok{background:color-mix(in srgb,var(--green) 22%,transparent);color:var(--green);}
+  .pmsg.rem{background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent);}
+  .pmsg.add{background:color-mix(in srgb,var(--blue) 22%,transparent);color:var(--blue);}
   .ing-row{display:grid;grid-template-columns:1fr 96px 34px;gap:8px;align-items:center;padding:9px 0;border-bottom:.5px solid var(--sep);}
   .ing-row:last-child{border-bottom:none;}
   .ing-row input{width:100%;padding:11px 12px;font-size:16px;font-weight:600;border-radius:10px;border:1px solid var(--sep);background:var(--card-2);color:var(--text);}
@@ -552,6 +556,13 @@ function orderProducedPalline(o) { return orderItems(o).reduce((s, it) => s + it
 function orderProducedG(o) { return orderItems(o).reduce((s, it) => s + itemProducedG(it), 0); }
 function orderScarto(o) { return orderProducedPalline(o) - orderPalline(o); }
 function scartoText(s) { return s === 0 ? 'esatto' : (s > 0 ? 'avanzo ' + fmt(s) + ' palline' : fmt(Math.abs(s)) + ' palline in meno'); }
+// messaggio-azione chiaro per il dipendente: produzione - ordine
+function azione(scarto) {
+  const pal = (n) => fmt(n) + (n === 1 ? ' pallina' : ' palline');
+  if (scarto === 0) return { t: '✓ Corretto', c: 'ok' };
+  if (scarto > 0) return { t: '➖ Togliere ' + pal(scarto), c: 'rem' };
+  return { t: '➕ Aggiungere ' + pal(-scarto), c: 'add' };
+}
 // "3 pesate da 3.330 g" (pesate intere, arrotondate)
 function pesataSpec(it) {
   const per = perCycle(), pesate = roundedPesate(it);
@@ -716,11 +727,13 @@ function renderProd() {
   el.innerHTML = negozioCard + sorted.map((o) => {
     const items = orderItems(o);
     const blocks = items.map((it) => {
-      const s = itemScarto(it); const sc = s === 0 ? '' : `<span class="scarto ${s > 0 ? 'pos' : 'neg'}">${scartoText(s)}</span>`;
+      const pesate = roundedPesate(it), prod = itemProducedPalline(it), a = azione(itemScarto(it));
+      const specLine = pesate > 0 ? `<div class="prod-spec">🔪 Fai ${pesataSpec(it)}</div>` : '';
       return `
       <div class="prod-item">
-        <div class="prod-spec">🔪 ${pesataSpec(it)} ${sc}</div>
-        <div class="prod-sub">⚪ ${fmt(num(it.palline))} palline ordinate · ${fmt(num(it.pesoPallina))} g/pallina</div>
+        ${specLine}
+        <div class="pmsg ${a.c}">${a.t}</div>
+        <div class="prod-sub">Ordine ${fmt(num(it.palline))} palline da ${fmt(num(it.pesoPallina))} g · ${pesate} pesate = ${fmt(prod)} palline</div>
       </div>`;
     }).join('');
     const prodLines = orderProducts(o).map((p) => `
@@ -728,8 +741,7 @@ function renderProd() {
         <div class="prod-spec prod-spec-b">🥐 ${fmt(num(p.qty))} × ${escapeHtml(p.name)}</div>
         <div class="prod-sub">${fmt(num(p.peso))} g a pezzo</div>
       </div>`).join('');
-    const sca = orderScarto(o);
-    const head = items.length ? `${fmt(orderPalline(o))} palline ordinate${sca !== 0 ? ' · ' + scartoText(sca) : ''}` : `${fmt(orderProducts(o).reduce((s, p) => s + num(p.qty), 0))} pezzi`;
+    const head = items.length ? `${fmt(orderPalline(o))} palline ordinate` : `${fmt(orderProducts(o).reduce((s, p) => s + num(p.qty), 0))} pezzi`;
     return `
       <div class="prod-client">
         <div class="prod-head"><div><div class="pn">${escapeHtml(o.clientName)}</div><div class="pp">${head}</div></div></div>
@@ -1365,6 +1377,9 @@ function runTests() {
   ok('pesata 60g = 2220', 60 * perCycle(), 2220);
   ok('produzione 250 = 259', itemProducedPalline({ palline: 250, pesoPallina: 60 }), 259);
   ok('avanzo 250 = +9', itemScarto({ palline: 250, pesoPallina: 60 }), 9);
+  ok('azione +9 = togliere', azione(9).t, '➖ Togliere 9 palline');
+  ok('azione -5 = aggiungere', azione(-5).t, '➕ Aggiungere 5 palline');
+  ok('azione 0 = corretto', azione(0).t, '✓ Corretto');
   // ordine multi-riga (stesso cliente, pesi diversi)
   const ml = { clientName: 'X', prezzoKg: 4, items: [{ palline: 100, pesoPallina: 90 }, { palline: 50, pesoPallina: 50 }] };
   ok('multiriga palline', orderPalline(ml), 150);
@@ -1460,7 +1475,7 @@ function renderShare(p) {
   }).join('');
   const prodHtml = p.o.map((o) => {
     const its = o.it || [], prs = o.pr || [];
-    const blocks = its.map((it) => { const prod = shareRoundedPesate(p.pc, it.p) * p.pc, s = prod - it.p, sc = s === 0 ? '' : `<span class="scarto ${s > 0 ? 'pos' : 'neg'}">${scartoText(s)}</span>`; return `<div class="prod-item"><div class="prod-spec">🔪 ${shareSpec(p.pc, it.w, it.p)} ${sc}</div><div class="prod-sub">⚪ ${fmt(it.p)} palline ordinate · ${fmt(it.w)} g/pallina</div></div>`; }).join('');
+    const blocks = its.map((it) => { const pesate = shareRoundedPesate(p.pc, it.p), prod = pesate * p.pc, a = azione(prod - it.p); const specLine = pesate > 0 ? `<div class="prod-spec">🔪 Fai ${shareSpec(p.pc, it.w, it.p)}</div>` : ''; return `<div class="prod-item">${specLine}<div class="pmsg ${a.c}">${a.t}</div><div class="prod-sub">Ordine ${fmt(it.p)} palline da ${fmt(it.w)} g · ${pesate} pesate = ${fmt(prod)} palline</div></div>`; }).join('');
     const prodLines = prs.map((pr) => `<div class="prod-item"><div class="prod-spec prod-spec-b">🥐 ${fmt(pr.q)} × ${escapeHtml(pr.n)}</div><div class="prod-sub">${fmt(pr.w)} g a pezzo</div></div>`).join('');
     const head = its.length ? `${fmt(its.reduce((s, it) => s + it.p, 0))} palline` : `${fmt(prs.reduce((s, x) => s + x.q, 0))} pezzi`;
     return `<div class="prod-client"><div class="prod-head"><div><div class="pn">${escapeHtml(o.n)}</div><div class="pp">${head}</div></div></div><div class="prod-body">${blocks}${prodLines}</div></div>`;
